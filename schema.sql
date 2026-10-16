@@ -821,13 +821,21 @@ select
        and co.category_id in (select public.category_subtree_ids(b.id))) as course_count
 from base b;
 
+-- Deliberate public projection: safe outline columns only, published courses only.
+-- Owned by the schema owner (definer) so unenrolled visitors can read titles.
 create or replace view public.public_lesson_outline as
 select
   l.id, l.section_id, l.course_id, l.title, l.type, l.duration_min,
   l.sort_order, l.is_preview
-from public.lessons l;
+from public.lessons l
+join public.courses c on c.id = l.course_id
+where c.status = 'published';
 
-create or replace view public.vw_student_attendance as
+-- Student-facing views MUST be security_invoker so RLS on the base tables
+-- applies to the querying user. Without this, a student could read other
+-- students' aggregated rows through the view.
+create or replace view public.vw_student_attendance
+  with (security_invoker = true) as
 select
   a.student_id,
   cs.batch_id,
@@ -840,7 +848,8 @@ from public.attendance a
 join public.class_sessions cs on cs.id = a.session_id
 group by a.student_id, cs.batch_id;
 
-create or replace view public.vw_student_performance as
+create or replace view public.vw_student_performance
+  with (security_invoker = true) as
 select
   s.student_id,
   a.course_id,
@@ -852,7 +861,8 @@ join public.assessments a on a.id = s.assessment_id
 where s.status = 'graded'
 group by s.student_id, a.course_id;
 
-create or replace view public.vw_course_progress as
+create or replace view public.vw_course_progress
+  with (security_invoker = true) as
 select
   e.student_id,
   e.course_id,
@@ -1197,6 +1207,32 @@ create trigger payments_audit
 create trigger fee_records_audit
   after update on public.fee_records
   for each row execute function public.audit_log_trigger();
+
+-- ============================================================================
+-- Grants
+-- RLS is the real gate; these grants are the minimum needed for the API roles
+-- to reach the tables at all. Revoke everything from anon by default is the
+-- Supabase convention, so we grant explicitly per role.
+-- ============================================================================
+grant usage on schema public to anon, authenticated, service_role;
+grant all on all tables in schema public to authenticated, service_role;
+grant all on all sequences in schema public to authenticated, service_role;
+grant execute on all functions in schema public to authenticated, service_role;
+
+-- Anonymous visitors can read only the public catalog surface.
+grant select on public.categories,
+                public.courses,
+                public.course_sections,
+                public.public_lesson_outline,
+                public.products,
+                public.lookups,
+                public.settings
+  to anon;
+grant execute on function public.get_lookups(text),
+                        public.get_public_settings(),
+                        public.category_subtree_ids(uuid),
+                        public.category_breadcrumb(uuid)
+  to anon;
 
 -- ============================================================================
 -- Seed data
