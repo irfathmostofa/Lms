@@ -1,9 +1,17 @@
+import { cache } from 'react';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
-export function createClient() {
+/**
+ * Request-scoped Supabase client.
+ *
+ * Wrapped in React `cache()` so the layout, the page and any server action
+ * invoked during the same render share a single client instance instead of
+ * rebuilding it (and re-reading cookies) on every call.
+ */
+export const createClient = cache(function createClient() {
   const cookieStore = cookies();
 
   return createServerClient(
@@ -26,4 +34,4 @@ export function createClient() {
       },
     },
   );
-}
+});

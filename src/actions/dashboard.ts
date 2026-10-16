@@ -1,8 +1,9 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
+import { CACHE_TAGS } from '@/lib/data';
 import { slugify } from '@/lib/utils';
 
 function str(formData: FormData, key: string) {
@@ -77,7 +78,8 @@ export async function setCourseStatusAction(formData: FormData) {
   await supabase.from('courses').update({ status }).eq('id', id);
   revalidatePath('/dashboard/courses');
   revalidatePath('/dashboard/content');
-  revalidatePath('/courses');
+  // 'layout' scope also refreshes the pre-rendered /courses/[slug] detail pages.
+  revalidatePath('/courses', 'layout');
 }
 
 // Enrollment ----------------------------------------------------------------
@@ -380,5 +382,6 @@ export async function updateSettingAction(formData: FormData) {
   const key = str(formData, 'key');
   if (!key) return;
   await supabase.from('settings').update({ value: str(formData, 'value') }).eq('key', key);
+  revalidateTag(CACHE_TAGS.settings);
   revalidatePath('/dashboard/settings');
 }

@@ -1,5 +1,7 @@
+import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { hasSupabaseEnv } from '@/lib/env';
 import type { Profile, UserRole } from '@/lib/types';
 
 export interface SessionContext {
@@ -8,7 +10,16 @@ export interface SessionContext {
   profile: Profile | null;
 }
 
-export async function getSessionContext(): Promise<SessionContext | null> {
+/**
+ * Resolve the signed-in user and their profile once per request.
+ *
+ * React `cache()` de-duplicates the auth lookup and the profile query across
+ * the dashboard layout, the page and nested components, so a single navigation
+ * performs one `auth.getUser()` round-trip instead of one per caller.
+ */
+export const getSessionContext = cache(async function getSessionContext(): Promise<SessionContext | null> {
+  if (!hasSupabaseEnv()) return null;
+
   const supabase = createClient();
   const {
     data: { user },
@@ -23,7 +34,7 @@ export async function getSessionContext(): Promise<SessionContext | null> {
     .single();
 
   return { userId: user.id, email: user.email ?? null, profile: (profile as Profile) ?? null };
-}
+});
 
 export async function requireUser(): Promise<SessionContext> {
   const ctx = await getSessionContext();

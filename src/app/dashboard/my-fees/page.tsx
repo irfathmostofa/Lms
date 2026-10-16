@@ -13,6 +13,7 @@ import {
   Th,
 } from '@/components/ui';
 import { ManualPaymentForm } from '@/components/dashboard/manual-payment-form';
+import { getPaymentMethods, getPublicSettings } from '@/lib/data';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -50,7 +51,7 @@ export default async function MyFeesPage() {
   const ctx = await requireUser();
   const supabase = createClient();
 
-  const [feesRes, paymentsRes, methodsRes, settingsRes] = await Promise.all([
+  const [feesRes, paymentsRes, methods, settings] = await Promise.all([
     supabase
       .from('fee_records')
       .select(
@@ -64,14 +65,12 @@ export default async function MyFeesPage() {
       .eq('student_id', ctx.userId)
       .order('created_at', { ascending: false })
       .limit(30),
-    supabase.from('lookups').select('code, label').eq('type', 'payment_method').eq('is_active', true).order('sort_order'),
-    supabase.from('settings').select('key, value').in('key', ['payment_instructions', 'site_name']),
+    getPaymentMethods(),
+    getPublicSettings(['payment_instructions', 'site_name']),
   ]);
 
   const fees = (feesRes.data as unknown as FeeRow[]) ?? [];
   const payments = (paymentsRes.data as PaymentRow[]) ?? [];
-  const methods = (methodsRes.data as { code: string; label: string }[]) ?? [];
-  const settings = new Map((settingsRes.data as { key: string; value: string | null }[]).map((s) => [s.key, s.value]));
 
   const totalDue = fees.reduce((sum, fee) => sum + Number(fee.due_amount), 0);
   const totalPaid = fees.reduce((sum, fee) => sum + Number(fee.paid_amount), 0);
@@ -90,7 +89,7 @@ export default async function MyFeesPage() {
       <Card className="mb-6">
         <CardHeader
           title="Submit a manual payment"
-          description={settings.get('payment_instructions') ?? undefined}
+          description={settings['payment_instructions'] ?? undefined}
         />
         <CardBody>
           <div className="grid gap-6 lg:grid-cols-2">

@@ -216,6 +216,23 @@ export function EmptyState({ title, description }: { title: string; description?
   );
 }
 
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn('animate-pulse rounded-md bg-slate-200/70', className)} />;
+}
+
+export function SkeletonCard({ lines = 3 }: { lines?: number }) {
+  return (
+    <Card>
+      <CardBody className="space-y-3">
+        <Skeleton className="h-4 w-1/3" />
+        {Array.from({ length: lines }).map((_, i) => (
+          <Skeleton key={i} className="h-3 w-full" />
+        ))}
+      </CardBody>
+    </Card>
+  );
+}
+
 export function Table({ children }: { children: ReactNode }) {
   return (
     <div className="overflow-x-auto">

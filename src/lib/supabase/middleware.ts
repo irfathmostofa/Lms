@@ -1,10 +1,15 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { hasSupabaseEnv } from '@/lib/env';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+
+  if (!hasSupabaseEnv()) {
+    return response;
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

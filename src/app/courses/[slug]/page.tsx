@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -9,6 +10,21 @@ import { formatCurrency } from '@/lib/utils';
 import type { Course } from '@/lib/types';
 
 export const revalidate = 300;
+
+export async function generateStaticParams() {
+  if (!hasSupabaseEnv()) return [];
+  try {
+    const supabase = createPublicClient();
+    const { data } = await supabase
+      .from('courses')
+      .select('slug')
+      .eq('status', 'published')
+      .limit(100);
+    return (data ?? []).map((row: { slug: string }) => ({ slug: row.slug }));
+  } catch {
+    return [];
+  }
+}
 
 interface OutlineRow {
   id: string;
@@ -25,7 +41,7 @@ interface SectionRow {
   summary: string | null;
 }
 
-async function loadCourse(slug: string) {
+const loadCourse = cache(async function loadCourse(slug: string) {
   if (!hasSupabaseEnv()) return null;
   const supabase = createPublicClient();
   const { data: course } = await supabase
@@ -59,7 +75,7 @@ async function loadCourse(slug: string) {
     outline: (outlineRes.data as OutlineRow[]) ?? [],
     category: (categoryRes.data as { name: string; slug: string } | null) ?? null,
   };
-}
+});
 
 export async function generateMetadata({
   params,

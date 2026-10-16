@@ -1,6 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    // Keep prefetched/RSC payloads in the browser router cache so repeat and
+    // back/forward navigations render instantly instead of refetching.
+    staleTimes: {
+      dynamic: 30,
+      static: 300,
+    },
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '*.supabase.co' },
