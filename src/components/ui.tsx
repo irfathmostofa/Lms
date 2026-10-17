@@ -23,8 +23,8 @@ export function CardHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
-      <div>
+    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-4 py-4 sm:px-5">
+      <div className="min-w-0">
         <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
         {description ? <p className="mt-1 text-xs text-slate-500">{description}</p> : null}
       </div>
@@ -46,9 +46,9 @@ const buttonVariants = {
 };
 
 const buttonSizes = {
-  sm: 'px-2.5 py-1.5 text-xs',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-5 py-2.5 text-sm',
+  sm: 'min-h-8 px-2.5 py-1.5 text-xs',
+  md: 'min-h-10 px-4 py-2 text-sm',
+  lg: 'min-h-11 px-5 py-2.5 text-sm',
 };
 
 type ButtonBaseProps = {
@@ -65,7 +65,7 @@ export function Button({
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition disabled:cursor-not-allowed disabled:opacity-60',
+        'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
         buttonVariants[variant],
         buttonSizes[size],
         className,
@@ -87,7 +87,7 @@ export function ButtonLink({
     <Link
       href={href}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition',
+        'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2',
         buttonVariants[variant],
         buttonSizes[size],
         className,
@@ -120,7 +120,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+        'inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium',
         badgeTones[tone],
         className,
       )}
@@ -149,7 +149,7 @@ export function Field({
 }
 
 export const inputClass =
-  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100';
+  'w-full min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 sm:text-sm';
 
 export function Input({ className, ...props }: ComponentProps<'input'>) {
   return <input className={cn(inputClass, className)} {...props} />;
@@ -177,10 +177,12 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">{title}</h1>
-        {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+    <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="text-lg font-semibold text-slate-900 sm:text-xl">{title}</h1>
+        {description ? (
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-500">{description}</p>
+        ) : null}
       </div>
       {action}
     </div>
@@ -200,7 +202,7 @@ export function StatCard({
     <Card>
       <CardBody className="p-4">
         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-        <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+        <p className="mt-2 break-words text-xl font-semibold text-slate-900 sm:text-2xl">{value}</p>
         {hint ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
       </CardBody>
     </Card>
@@ -209,7 +211,7 @@ export function StatCard({
 
 export function EmptyState({ title, description }: { title: string; description?: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center sm:px-6 sm:py-10">
       <p className="text-sm font-medium text-slate-700">{title}</p>
       {description ? <p className="mt-1 text-xs text-slate-500">{description}</p> : null}
     </div>
@@ -233,9 +235,20 @@ export function SkeletonCard({ lines = 3 }: { lines?: number }) {
   );
 }
 
-export function Table({ children }: { children: ReactNode }) {
+export function Table({
+  children,
+  label = 'Data table',
+}: {
+  children: ReactNode;
+  label?: string;
+}) {
   return (
-    <div className="overflow-x-auto">
+    <div
+      role="region"
+      aria-label={label}
+      tabIndex={0}
+      className="scrollbar-thin w-full overflow-x-auto overscroll-x-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-300"
+    >
       <table className="w-full min-w-full divide-y divide-slate-100 text-sm">{children}</table>
     </div>
   );
@@ -245,7 +258,7 @@ export function Th({ children, className }: { children?: ReactNode; className?: 
   return (
     <th
       className={cn(
-        'px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500',
+        'whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-4',
         className,
       )}
     >
@@ -255,5 +268,5 @@ export function Th({ children, className }: { children?: ReactNode; className?: 
 }
 
 export function Td({ children, className }: { children?: ReactNode; className?: string }) {
-  return <td className={cn('px-4 py-3 text-slate-700', className)}>{children}</td>;
+  return <td className={cn('px-3 py-3 text-slate-700 sm:px-4', className)}>{children}</td>;
 }

@@ -19,26 +19,27 @@ export const ROLE_HOME: Record<UserRole, string> = {
 export interface NavItem {
   href: string;
   label: string;
+  group: string;
   roles: UserRole[];
 }
 
 export const DASHBOARD_NAV: NavItem[] = [
-  { href: '/dashboard', label: 'Overview', roles: ['admin'] },
-  { href: '/dashboard/my-learning', label: 'My Learning', roles: ['student'] },
-  { href: '/dashboard/my-fees', label: 'My Fees', roles: ['student'] },
-  { href: '/dashboard/my-assessments', label: 'Assessments', roles: ['student'] },
-  { href: '/dashboard/my-attendance', label: 'Attendance', roles: ['student'] },
-  { href: '/dashboard/store', label: 'Store', roles: ['student'] },
-  { href: '/dashboard/users', label: 'Users', roles: ['admin'] },
-  { href: '/dashboard/courses', label: 'Courses', roles: ['admin', 'editor', 'instructor'] },
-  { href: '/dashboard/enrollments', label: 'Enrollments', roles: ['admin'] },
-  { href: '/dashboard/batches', label: 'Batches', roles: ['admin', 'instructor'] },
-  { href: '/dashboard/assessments', label: 'Assessments', roles: ['admin', 'instructor'] },
-  { href: '/dashboard/content', label: 'Content', roles: ['admin', 'editor'] },
-  { href: '/dashboard/payments', label: 'Payments', roles: ['admin', 'accountant'] },
-  { href: '/dashboard/finance', label: 'Finance', roles: ['admin', 'accountant'] },
-  { href: '/dashboard/orders', label: 'Orders', roles: ['admin'] },
-  { href: '/dashboard/settings', label: 'Settings', roles: ['admin'] },
+  { href: '/dashboard', label: 'Overview', group: 'Overview', roles: ['admin'] },
+  { href: '/dashboard/my-learning', label: 'My learning', group: 'Learning', roles: ['student'] },
+  { href: '/dashboard/my-fees', label: 'My fees', group: 'Finance', roles: ['student'] },
+  { href: '/dashboard/my-assessments', label: 'Assessments', group: 'Learning', roles: ['student'] },
+  { href: '/dashboard/my-attendance', label: 'Attendance', group: 'Learning', roles: ['student'] },
+  { href: '/dashboard/store', label: 'Store', group: 'Store', roles: ['student'] },
+  { href: '/dashboard/users', label: 'Users', group: 'People', roles: ['admin'] },
+  { href: '/dashboard/courses', label: 'Courses', group: 'Academics', roles: ['admin', 'editor', 'instructor'] },
+  { href: '/dashboard/enrollments', label: 'Enrollments', group: 'People', roles: ['admin'] },
+  { href: '/dashboard/batches', label: 'Batches', group: 'Academics', roles: ['admin', 'instructor'] },
+  { href: '/dashboard/assessments', label: 'Assessments', group: 'Academics', roles: ['admin', 'instructor'] },
+  { href: '/dashboard/content', label: 'Content', group: 'Academics', roles: ['admin', 'editor'] },
+  { href: '/dashboard/payments', label: 'Payments', group: 'Finance', roles: ['admin', 'accountant'] },
+  { href: '/dashboard/finance', label: 'Finance', group: 'Finance', roles: ['admin', 'accountant'] },
+  { href: '/dashboard/orders', label: 'Orders', group: 'Finance', roles: ['admin'] },
+  { href: '/dashboard/settings', label: 'Settings', group: 'Account', roles: ['admin'] },
 ];
 
 export function navForRole(role: UserRole): NavItem[] {
