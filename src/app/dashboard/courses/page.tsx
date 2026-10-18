@@ -1,28 +1,27 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getSessionContext } from '@/lib/auth';
-import { createCourseAction, setCourseStatusAction } from '@/actions/dashboard';
+import { setCourseStatusAction } from '@/actions/dashboard';
 import {
   Badge,
   Button,
+  ButtonLink,
   Card,
   CardBody,
   CardHeader,
   EmptyState,
-  Field,
-  Input,
   PageHeader,
-  Select,
   Table,
   Td,
   Th,
-  Textarea,
 } from '@/components/ui';
-import { SubmitButton } from '@/components/dashboard/submit-button';
+import { Pagination } from '@/components/dashboard/pagination';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import type { Category, Course } from '@/lib/types';
+import type { Course, CourseVisibility } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
+
+const PAGE_SIZE = 20;
 
 const statusTone: Record<string, 'slate' | 'amber' | 'green' | 'violet'> = {
   draft: 'slate',
@@ -31,103 +30,76 @@ const statusTone: Record<string, 'slate' | 'amber' | 'green' | 'violet'> = {
   archived: 'violet',
 };
 
-export default async function CoursesAdminPage() {
+const visibilityTone: Record<CourseVisibility, 'green' | 'amber' | 'slate'> = {
+  public: 'green',
+  password: 'amber',
+  private: 'slate',
+};
+
+export default async function CoursesAdminPage({
+  searchParams,
+}: {
+  searchParams: { page?: string };
+}) {
   const ctx = await getSessionContext();
   const role = ctx?.profile?.role ?? 'student';
   if (!['admin', 'editor', 'instructor'].includes(role)) redirect('/dashboard');
 
   const supabase = createClient();
+  const { count } = await supabase
+    .from('courses')
+    .select('id', { count: 'exact', head: true });
 
-  const [coursesRes, categoriesRes] = await Promise.all([
-    supabase.from('courses').select('*').order('updated_at', { ascending: false }).limit(100),
-    supabase.from('categories').select('*').order('name'),
-  ]);
+  const total = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const page = Math.min(Math.max(1, Number(searchParams.page ?? '1') || 1), totalPages);
+  const from = (page - 1) * PAGE_SIZE;
 
-  const courses = (coursesRes.data as Course[]) ?? [];
-  const categories = (categoriesRes.data as Category[]) ?? [];
+  const { data } = await supabase
+    .from('courses')
+    .select('*')
+    .order('updated_at', { ascending: false })
+    .range(from, from + PAGE_SIZE - 1);
+
+  const courses = (data as Course[]) ?? [];
   const isAdmin = role === 'admin';
+  const canSetup = ['admin', 'editor'].includes(role);
 
   return (
     <>
       <PageHeader
         title="Courses"
-        description="Create courses, move them through review, and publish (admin only)."
+        description="Build courses in three steps, move them through review, and publish (admin only)."
+        action={
+          canSetup ? (
+            <ButtonLink href="/dashboard/courses/new" size="sm">
+              New course
+            </ButtonLink>
+          ) : undefined
+        }
       />
 
-      {['admin', 'editor'].includes(role) ? (
-        <Card className="mb-6">
-          <CardHeader title="New course" description="Created as a draft. Submit for review when ready." />
-          <CardBody>
-            <form action={createCourseAction} className="grid gap-4 sm:grid-cols-2">
-              <Field label="Title">
-                <Input name="title" required />
-              </Field>
-              <Field label="Slug" hint="Leave blank to auto-generate from the title.">
-                <Input name="slug" />
-              </Field>
-              <Field label="Category">
-                <Select name="category_id" defaultValue="">
-                  <option value="">Uncategorized</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Mode">
-                <Select name="mode" defaultValue="online">
-                  <option value="online">Online</option>
-                  <option value="offline">Offline</option>
-                  <option value="hybrid">Hybrid</option>
-                </Select>
-              </Field>
-              <Field label="Price (BDT)">
-                <Input name="price" type="number" min="0" step="0.01" defaultValue="0" />
-              </Field>
-              <Field label="Discount price (BDT)">
-                <Input name="discount_price" type="number" min="0" step="0.01" />
-              </Field>
-              <Field label="Level">
-                <Input name="level" placeholder="Beginner / Intermediate / Advanced" />
-              </Field>
-              <Field label="Duration (hours)">
-                <Input name="duration_hours" type="number" min="0" />
-              </Field>
-              <div className="sm:col-span-2">
-                <Field label="Summary">
-                  <Input name="summary" />
-                </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <Field label="Description">
-                  <Textarea name="description" />
-                </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <SubmitButton pendingLabel="Creating...">Create course</SubmitButton>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
-      ) : null}
-
       <Card>
-        <CardHeader title="All courses" description={`${courses.length} courses`} />
+        <CardHeader title="All courses" description={`${total} courses`} />
         <CardBody className="p-0">
           {courses.length === 0 ? (
             <div className="p-5">
-              <EmptyState title="No courses yet" />
+              <EmptyState
+                title="No courses yet"
+                description={canSetup ? 'Create your first course to get started.' : undefined}
+              />
             </div>
           ) : (
+            <>
             <Table>
               <thead className="bg-slate-50">
                 <tr>
                   <Th>Title</Th>
-                  <Th>Mode</Th>
+                  <Th className="hidden lg:table-cell">Visibility</Th>
+                  <Th className="hidden xl:table-cell">Mode</Th>
                   <Th>Status</Th>
-                  <Th>Price</Th>
-                  <Th>Updated</Th>
+                  <Th className="hidden lg:table-cell">Price</Th>
+                  <Th className="hidden xl:table-cell">Updated</Th>
                   <Th>Actions</Th>
                 </tr>
               </thead>
@@ -136,19 +108,42 @@ export default async function CoursesAdminPage() {
                   <tr key={course.id}>
                     <Td>
                       <span className="font-medium text-slate-900">{course.title}</span>
-                      <span className="ml-2 font-mono text-xs text-slate-400">{course.slug}</span>
+                      <span className="ml-2 hidden font-mono text-xs text-slate-400 sm:inline">
+                        {course.slug}
+                      </span>
+                      {course.author_name ? (
+                        <p className="mt-0.5 text-xs text-slate-400">by {course.author_name}</p>
+                      ) : null}
                     </Td>
-                    <Td>
+                    <Td className="hidden lg:table-cell">
+                      <Badge tone={visibilityTone[course.visibility] ?? 'slate'}>
+                        {course.visibility ?? 'public'}
+                      </Badge>
+                    </Td>
+                    <Td className="hidden xl:table-cell">
                       <Badge>{course.mode}</Badge>
                     </Td>
                     <Td>
                       <Badge tone={statusTone[course.status]}>{course.status}</Badge>
                     </Td>
-                    <Td>{formatCurrency(course.discount_price ?? course.price)}</Td>
-                    <Td className="text-xs text-slate-500">{formatDate(course.updated_at)}</Td>
+                    <Td className="hidden lg:table-cell">
+                      {formatCurrency(course.discount_price ?? course.price)}
+                    </Td>
+                    <Td className="hidden text-xs text-slate-500 xl:table-cell">
+                      {formatDate(course.updated_at)}
+                    </Td>
                     <Td>
                       <div className="flex flex-wrap gap-2">
-                        {course.status !== 'review' && course.status !== 'published' ? (
+                        {canSetup ? (
+                          <ButtonLink
+                            href={`/dashboard/courses/${course.id}/setup`}
+                            size="sm"
+                            variant="secondary"
+                          >
+                            Setup
+                          </ButtonLink>
+                        ) : null}
+                        {canSetup && course.status !== 'review' && course.status !== 'published' ? (
                           <form action={setCourseStatusAction}>
                             <input type="hidden" name="id" value={course.id} />
                             <input type="hidden" name="status" value="review" />
@@ -181,6 +176,14 @@ export default async function CoursesAdminPage() {
                 ))}
               </tbody>
             </Table>
+            <Pagination
+              page={page}
+              totalItems={total}
+              pageSize={PAGE_SIZE}
+              basePath="/dashboard/courses"
+              searchParams={searchParams}
+            />
+            </>
           )}
         </CardBody>
       </Card>

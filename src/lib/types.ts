@@ -2,11 +2,12 @@ export type UserRole = 'admin' | 'accountant' | 'instructor' | 'editor' | 'stude
 
 export type CourseStatus = 'draft' | 'review' | 'published' | 'archived';
 export type CourseMode = 'online' | 'offline' | 'hybrid';
+export type CourseVisibility = 'public' | 'password' | 'private';
 export type EnrollmentStatus = 'pending' | 'active' | 'completed' | 'cancelled' | 'expired';
 export type PaymentStatus = 'pending' | 'verified' | 'rejected' | 'refunded' | 'cancelled';
 export type PaymentGateway = 'manual' | 'sslcommerz';
 export type LessonType = 'text' | 'image' | 'pdf' | 'youtube' | 'link';
-export type AssessmentType = 'homework' | 'class_test' | 'assignment' | 'exam';
+export type AssessmentType = 'homework' | 'class_test' | 'assignment' | 'exam' | 'quiz';
 export type SubmissionStatus = 'submitted' | 'graded' | 'returned' | 'late' | 'missing';
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 export type ProductType = 'digital' | 'physical';
@@ -54,11 +55,21 @@ export interface Course {
   promo_video_id: string | null;
   mode: CourseMode;
   status: CourseStatus;
+  visibility: CourseVisibility;
+  scheduled_at: string | null;
+  author_id: string | null;
+  author_name: string | null;
+  tags: string[];
   level: string | null;
   language: string | null;
   price: number;
   discount_price: number | null;
   duration_hours: number | null;
+  duration_label: string | null;
+  learning_outcomes: string | null;
+  target_audience: string | null;
+  materials_included: string | null;
+  requirements: string | null;
   total_lessons: number;
   is_featured: boolean;
   published_at: string | null;
@@ -155,6 +166,7 @@ export interface Assessment {
   id: string;
   course_id: string | null;
   batch_id: string | null;
+  section_id: string | null;
   title: string;
   instructions: string | null;
   type: AssessmentType;
@@ -162,6 +174,7 @@ export interface Assessment {
   pass_marks: number | null;
   due_at: string | null;
   is_published: boolean;
+  sort_order: number;
   created_by: string | null;
   created_at: string;
 }

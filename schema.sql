@@ -11,11 +11,12 @@ create extension if not exists pgcrypto;
 create type public.user_role        as enum ('admin','accountant','instructor','editor','student');
 create type public.course_status    as enum ('draft','review','published','archived');
 create type public.course_mode      as enum ('online','offline','hybrid');
+create type public.course_visibility as enum ('public','password','private');
 create type public.enrollment_status as enum ('pending','active','completed','cancelled','expired');
 create type public.payment_gateway  as enum ('manual','sslcommerz');
 create type public.payment_status   as enum ('pending','verified','rejected','refunded','cancelled');
 create type public.lesson_type      as enum ('text','image','pdf','youtube','link');
-create type public.assessment_type  as enum ('homework','class_test','assignment','exam');
+create type public.assessment_type  as enum ('homework','class_test','assignment','exam','quiz');
 create type public.submission_status as enum ('submitted','graded','returned','late','missing');
 create type public.attendance_status as enum ('present','absent','late','excused');
 create type public.product_type     as enum ('digital','physical');
@@ -68,11 +69,21 @@ create table public.courses (
   promo_video_id   text,
   mode             public.course_mode not null default 'online',
   status           public.course_status not null default 'draft',
+  visibility       public.course_visibility not null default 'public',
+  scheduled_at     timestamptz,
+  author_id        uuid references public.profiles(id) on delete set null,
+  author_name      text,
+  tags             text[] not null default '{}',
   level            text,
   language         text default 'bn',
   price            numeric(12,2) not null default 0,
   discount_price   numeric(12,2),
   duration_hours   int,
+  duration_label   text,
+  learning_outcomes text,
+  target_audience  text,
+  materials_included text,
+  requirements     text,
   total_lessons    int not null default 0,
   is_featured      boolean not null default false,
   published_at     timestamptz,
@@ -82,7 +93,18 @@ create table public.courses (
 );
 create index courses_category_idx on public.courses(category_id);
 create index courses_status_idx   on public.courses(status);
+create index courses_author_idx   on public.courses(author_id);
+create index courses_visibility_idx on public.courses(visibility);
+create index courses_tags_idx     on public.courses using gin(tags);
 create index courses_published_idx on public.courses(published_at desc) where status = 'published';
+
+-- Password-protected courses: hashes live in a separate table so the anon API
+-- can never read them through the public course projection.
+create table public.course_access (
+  course_id     uuid primary key references public.courses(id) on delete cascade,
+  password_hash text not null,
+  updated_at    timestamptz not null default now()
+);
 
 create table public.course_instructors (
   id            uuid primary key default gen_random_uuid(),
@@ -361,6 +383,7 @@ create table public.assessments (
   id          uuid primary key default gen_random_uuid(),
   course_id   uuid references public.courses(id) on delete cascade,
   batch_id    uuid references public.batches(id) on delete cascade,
+  section_id  uuid references public.course_sections(id) on delete cascade,
   title       text not null,
   instructions text,
   type        public.assessment_type not null default 'homework',
@@ -368,6 +391,7 @@ create table public.assessments (
   pass_marks  numeric(6,2),
   due_at      timestamptz,
   is_published boolean not null default false,
+  sort_order  int not null default 0,
   created_by  uuid references public.profiles(id) on delete set null,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
@@ -375,6 +399,7 @@ create table public.assessments (
 );
 create index assessments_course_idx on public.assessments(course_id);
 create index assessments_batch_idx  on public.assessments(batch_id);
+create index assessments_section_idx on public.assessments(section_id);
 
 create table public.submissions (
   id            uuid primary key default gen_random_uuid(),
@@ -546,7 +571,38 @@ create or replace function public.is_course_published(p_course uuid)
 returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (
-    select 1 from public.courses c where c.id = p_course and c.status = 'published'
+    select 1 from public.courses c
+    where c.id = p_course and c.status = 'published' and c.visibility <> 'private'
+  );
+$$;
+
+-- Password-protected course access. Only this definer function can read the
+-- hash; anon never gets a select grant on public.course_access.
+create or replace function public.set_course_password(p_course uuid, p_password text)
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_editor() then
+    raise exception 'Not allowed';
+  end if;
+
+  if p_password is null or length(trim(p_password)) = 0 then
+    delete from public.course_access where course_id = p_course;
+  else
+    insert into public.course_access (course_id, password_hash)
+    values (p_course, crypt(p_password, gen_salt('bf')))
+    on conflict (course_id) do update
+      set password_hash = excluded.password_hash, updated_at = now();
+  end if;
+end $$;
+
+create or replace function public.verify_course_password(p_course uuid, p_password text)
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.course_access
+    where course_id = p_course
+      and password_hash = crypt(p_password, password_hash)
   );
 $$;
 
@@ -697,6 +753,30 @@ create trigger courses_guard_publish
   before update on public.courses
   for each row execute function public.enforce_publish_admin();
 
+create or replace function public.sync_course_lesson_count()
+returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  v_course uuid;
+begin
+  if tg_op = 'UPDATE' and old.course_id is distinct from new.course_id then
+    update public.courses c
+      set total_lessons = (select count(*) from public.lessons l where l.course_id = old.course_id)
+      where c.id = old.course_id;
+  end if;
+
+  v_course := coalesce(new.course_id, old.course_id);
+  update public.courses c
+    set total_lessons = (select count(*) from public.lessons l where l.course_id = v_course)
+    where c.id = v_course;
+
+  return coalesce(new, old);
+end $$;
+
+create trigger lessons_sync_count
+  after insert or update of course_id or delete on public.lessons
+  for each row execute function public.sync_course_lesson_count();
+
 create or replace function public.audit_log_trigger()
 returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -829,7 +909,7 @@ select
   l.sort_order, l.is_preview
 from public.lessons l
 join public.courses c on c.id = l.course_id
-where c.status = 'published';
+where c.status = 'published' and c.visibility <> 'private';
 
 -- Student-facing views MUST be security_invoker so RLS on the base tables
 -- applies to the querying user. Without this, a student could read other
@@ -976,7 +1056,7 @@ do $$
 declare t text;
 begin
   foreach t in array array[
-    'profiles','categories','courses','course_instructors','instructor_shares',
+    'profiles','categories','courses','course_access','course_instructors','instructor_shares',
     'course_sections','lessons','course_outline_items','batches','class_sessions',
     'attendance','enrollments','fee_records','products','product_files','orders',
     'order_items','payments','product_access','lesson_progress','assessments',
@@ -1004,13 +1084,22 @@ create policy categories_admin on public.categories
 
 -- courses -------------------------------------------------------------------
 create policy courses_select_published on public.courses
-  for select using (status = 'published' or (select public.is_editor()) or (select public.is_instructor_of(id)));
+  for select using (
+    (status = 'published' and visibility <> 'private')
+    or (select public.is_editor())
+    or (select public.is_instructor_of(id))
+    or (select public.is_enrolled(id))
+  );
 create policy courses_insert_editor on public.courses
   for insert with check ((select public.is_editor()));
 create policy courses_update_editor on public.courses
   for update using ((select public.is_editor())) with check ((select public.is_editor()));
 create policy courses_admin_delete on public.courses
   for delete using ((select public.is_admin()));
+
+-- course_access -------------------------------------------------------------
+create policy course_access_editor on public.course_access
+  for all using ((select public.is_editor())) with check ((select public.is_editor()));
 
 -- course_instructors --------------------------------------------------------
 create policy course_instructors_read on public.course_instructors
@@ -1029,6 +1118,7 @@ create policy sections_read on public.course_sections
     (select public.is_course_published(course_id))
     or (select public.is_staff())
     or (select public.is_instructor_of(course_id))
+    or (select public.is_enrolled(course_id))
   );
 create policy sections_write on public.course_sections
   for all using ((select public.is_editor()) or (select public.is_instructor_of(course_id)))
@@ -1152,10 +1242,10 @@ create policy assessments_read on public.assessments
   );
 create policy assessments_write on public.assessments
   for all using (
-    (select public.is_admin())
+    (select public.is_editor())
     or (course_id is not null and (select public.is_instructor_of(course_id)))
   ) with check (
-    (select public.is_admin())
+    (select public.is_editor())
     or (course_id is not null and (select public.is_instructor_of(course_id)))
   );
 
@@ -1231,7 +1321,8 @@ grant select on public.categories,
 grant execute on function public.get_lookups(text),
                         public.get_public_settings(),
                         public.category_subtree_ids(uuid),
-                        public.category_breadcrumb(uuid)
+                        public.category_breadcrumb(uuid),
+                        public.verify_course_password(uuid, text)
   to anon;
 
 -- ============================================================================

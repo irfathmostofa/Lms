@@ -15,9 +15,10 @@ async function getCourses(): Promise<Course[]> {
     const { data } = await supabase
       .from('courses')
       .select(
-        'id, title, slug, summary, thumbnail_url, mode, price, discount_price, level, total_lessons, is_featured',
+        'id, title, slug, summary, thumbnail_url, mode, price, discount_price, level, total_lessons, is_featured, visibility, tags, author_name',
       )
       .eq('status', 'published')
+      .neq('visibility', 'private')
       .order('published_at', { ascending: false })
       .limit(24);
     return (data as Course[]) ?? [];
@@ -79,9 +80,12 @@ export default async function CoursesPage() {
                     )}
                   </div>
                   <CardBody className="p-4">
-                    <div className="mb-2 flex items-center gap-2">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
                       <Badge tone={modeTone[course.mode] ?? 'slate'}>{course.mode}</Badge>
                       {course.level ? <Badge>{course.level}</Badge> : null}
+                      {course.visibility === 'password' ? (
+                        <Badge tone="amber">Password</Badge>
+                      ) : null}
                     </div>
                     <h2 className="line-clamp-2 text-sm font-semibold text-slate-900">
                       {course.title}
