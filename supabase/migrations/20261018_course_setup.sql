@@ -1,6 +1,11 @@
 -- Course setup: 3-step builder (basic, curriculum, additional).
 -- Safe to run on an existing database created from an earlier schema.sql.
 
+-- pgcrypto lives in the extensions schema on Supabase, so qualify the
+-- search_path of the password helpers below. This is a no-op when already
+-- installed (the default on Supabase).
+create extension if not exists pgcrypto;
+
 do $$
 begin
   create type public.course_visibility as enum ('public','password','private');
@@ -79,12 +84,12 @@ create policy sections_read on public.course_sections
 
 create or replace function public.is_course_published(p_course uuid)
 returns boolean
-language sql stable security definer set search_path = public as $$
+as $$
   select exists (
     select 1 from public.courses c
     where c.id = p_course and c.status = 'published' and c.visibility <> 'private'
   );
-$$;
+$$ language sql stable security definer set search_path = public;
 
 create or replace view public.public_lesson_outline as
 select
@@ -96,7 +101,7 @@ where c.status = 'published' and c.visibility <> 'private';
 
 create or replace function public.set_course_password(p_course uuid, p_password text)
 returns void
-language plpgsql security definer set search_path = public as $$
+as $$
 begin
   if not public.is_editor() then
     raise exception 'Not allowed';
@@ -110,23 +115,23 @@ begin
     on conflict (course_id) do update
       set password_hash = excluded.password_hash, updated_at = now();
   end if;
-end $$;
+end $$ language plpgsql security definer set search_path = public, extensions;
 
 create or replace function public.verify_course_password(p_course uuid, p_password text)
 returns boolean
-language sql stable security definer set search_path = public as $$
+as $$
   select exists (
     select 1 from public.course_access
     where course_id = p_course
       and password_hash = crypt(p_password, password_hash)
   );
-$$;
+$$ language sql stable security definer set search_path = public, extensions;
 
 grant execute on function public.verify_course_password(uuid, text) to anon, authenticated;
 
 create or replace function public.sync_course_lesson_count()
 returns trigger
-language plpgsql security definer set search_path = public as $$
+as $$
 declare
   v_course uuid;
 begin
@@ -142,7 +147,7 @@ begin
     where c.id = v_course;
 
   return coalesce(new, old);
-end $$;
+end $$ language plpgsql security definer set search_path = public;
 
 drop trigger if exists lessons_sync_count on public.lessons;
 create trigger lessons_sync_count

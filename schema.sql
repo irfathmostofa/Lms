@@ -580,7 +580,7 @@ $$;
 -- hash; anon never gets a select grant on public.course_access.
 create or replace function public.set_course_password(p_course uuid, p_password text)
 returns void
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 begin
   if not public.is_editor() then
     raise exception 'Not allowed';
@@ -598,7 +598,7 @@ end $$;
 
 create or replace function public.verify_course_password(p_course uuid, p_password text)
 returns boolean
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = public, extensions as $$
   select exists (
     select 1 from public.course_access
     where course_id = p_course
