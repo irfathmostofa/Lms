@@ -1,5 +1,7 @@
-import Link from 'next/link';
 import { ButtonLink } from '@/components/ui';
+import { SiteHeader } from '@/components/site-header';
+import { getSessionContext } from '@/lib/auth';
+import { ROLE_HOME } from '@/lib/constants';
 
 const features = [
   {
@@ -28,25 +30,15 @@ const features = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const ctx = await getSessionContext();
+  const dashboardHref = ctx
+    ? ROLE_HOME[ctx.profile?.role ?? 'student'] ?? '/dashboard'
+    : null;
+
   return (
     <main className="min-h-screen bg-white">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Link href="/" className="text-lg font-semibold text-brand-700">
-          LMS Platform
-        </Link>
-        <nav className="flex items-center gap-3">
-          <Link href="/courses" className="text-sm font-medium text-slate-600 hover:text-slate-900">
-            Courses
-          </Link>
-          <ButtonLink href="/login" variant="outline" size="sm">
-            Sign in
-          </ButtonLink>
-          <ButtonLink href="/register" size="sm">
-            Get started
-          </ButtonLink>
-        </nav>
-      </header>
+      <SiteHeader />
 
       <section className="mx-auto max-w-6xl px-6 pb-16 pt-10">
         <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">
@@ -60,9 +52,15 @@ export default function HomePage() {
           Courses, batches, attendance, assessments, payments and finance in a single place.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <ButtonLink href="/register" size="lg">
-            Create an account
-          </ButtonLink>
+          {dashboardHref ? (
+            <ButtonLink href={dashboardHref} size="lg">
+              Go to dashboard
+            </ButtonLink>
+          ) : (
+            <ButtonLink href="/register" size="lg">
+              Create an account
+            </ButtonLink>
+          )}
           <ButtonLink href="/courses" variant="outline" size="lg">
             Browse courses
           </ButtonLink>

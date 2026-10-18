@@ -18,6 +18,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       name={name}
       email={email}
       roleLabel={ROLE_LABEL[role]}
+      showSiteLink={role === 'admin'}
     >
       {children}
     </DashboardChrome>

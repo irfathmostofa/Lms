@@ -53,17 +53,33 @@ function CloseIcon() {
   );
 }
 
+function ExternalIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-4 w-4">
+      <path
+        d="M14 5h5v5M19 5l-8 8M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function DashboardChrome({
   items,
   name,
   email,
   roleLabel,
+  showSiteLink = false,
   children,
 }: {
   items: NavItem[];
   name: string;
   email: string;
   roleLabel: string;
+  showSiteLink?: boolean;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -184,6 +200,15 @@ export function DashboardChrome({
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              {showSiteLink ? (
+                <Link
+                  href="/"
+                  className="flex h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                >
+                  <ExternalIcon />
+                  <span className="hidden sm:inline">View site</span>
+                </Link>
+              ) : null}
               <Badge tone="blue" className="hidden sm:inline-flex">
                 {roleLabel}
               </Badge>
