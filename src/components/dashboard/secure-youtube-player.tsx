@@ -206,10 +206,12 @@ export function SecureYouTubePlayer({
   videoId,
   title,
   watermark,
+  fill = false,
 }: {
   videoId: string;
   title: string;
   watermark: string;
+  fill?: boolean;
 }) {
   const rawId = useId();
   const containerId = `yt-${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
@@ -416,14 +418,14 @@ export function SecureYouTubePlayer({
   if (!started) {
     return (
       <div
-        className="relative select-none overflow-hidden rounded-lg"
+        className={`relative select-none overflow-hidden ${fill ? 'h-full rounded-none' : 'rounded-lg'}`}
         onContextMenu={(event) => event.preventDefault()}
         onDragStart={(event) => event.preventDefault()}
       >
         <button
           type="button"
           onClick={() => setStarted(true)}
-          className="group relative block aspect-video w-full overflow-hidden bg-slate-900"
+          className={`group relative block w-full overflow-hidden bg-slate-900 ${fill ? 'h-full' : 'aspect-video'}`}
           aria-label={`Play ${title}`}
         >
           <Image
@@ -453,7 +455,7 @@ export function SecureYouTubePlayer({
       ref={shellRef}
       tabIndex={0}
       className={`relative w-full select-none overflow-hidden bg-black outline-none ${
-        fullscreen ? 'h-full rounded-none' : 'aspect-video rounded-lg'
+        fullscreen || fill ? 'h-full rounded-none' : 'aspect-video rounded-lg'
       }`}
       onContextMenu={(event) => event.preventDefault()}
       onDragStart={(event) => event.preventDefault()}
