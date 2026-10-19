@@ -4,8 +4,8 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireUser } from '@/lib/auth';
 import { toggleLessonProgressAction } from '@/actions/student';
-import { Badge, Button, Card, CardBody, CardHeader } from '@/components/ui';
-import { LazyYouTube } from '@/components/dashboard/lazy-youtube';
+import { Badge, Button, ButtonLink, Card, CardBody, CardHeader } from '@/components/ui';
+import { SecureYouTubePlayer } from '@/components/dashboard/secure-youtube-player';
 import type { Course, CourseSection, Lesson } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +33,39 @@ export default async function CoursePlayerPage({
   const course = courseRes.data as Course | null;
   const enrollment = enrollmentRes.data as { id: string; status: string } | null;
   if (!course || !enrollment) notFound();
+
+  const hasAccess = enrollment.status === 'active' || enrollment.status === 'completed';
+
+  if (!hasAccess) {
+    return (
+      <div className="space-y-6">
+        <Link href="/dashboard/my-learning" className="text-sm text-brand-600 hover:underline">
+          Back to my learning
+        </Link>
+        <Card>
+          <CardHeader
+            title={course.title}
+            description="Your enrollment is not active yet."
+            action={<Badge tone="amber">{enrollment.status}</Badge>}
+          />
+          <CardBody className="space-y-4">
+            <p className="text-sm leading-relaxed text-slate-600">
+              Lessons and protected videos unlock automatically once your payment is verified and
+              your enrollment is active.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <ButtonLink href="/dashboard/my-fees" size="sm">
+                Check payment status
+              </ButtonLink>
+              <ButtonLink href={`/courses/${course.slug}`} size="sm" variant="outline">
+                View course details
+              </ButtonLink>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
 
   const [sectionsRes, lessonsRes, progressRes] = await Promise.all([
     supabase.from('course_sections').select('*').eq('course_id', course.id).order('sort_order'),
@@ -97,7 +130,12 @@ export default async function CoursePlayerPage({
               />
               <CardBody className="space-y-4">
                 {activeLesson.type === 'youtube' && activeLesson.youtube_id ? (
-                  <LazyYouTube videoId={activeLesson.youtube_id} title={activeLesson.title} />
+                  <SecureYouTubePlayer
+                    key={activeLesson.id}
+                    videoId={activeLesson.youtube_id}
+                    title={activeLesson.title}
+                    watermark={ctx.email ?? ctx.profile?.email ?? `ID ${ctx.userId.slice(0, 8)}`}
+                  />
                 ) : null}
 
                 {activeLesson.type === 'image' && activeLesson.media_url ? (
