@@ -8,7 +8,7 @@ import { requestPasswordResetAction } from '@/actions/auth';
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
+    <Button type="submit" className="w-full" size="lg" disabled={pending}>
       {pending ? 'Sending link...' : 'Send reset link'}
     </Button>
   );
@@ -20,14 +20,14 @@ export function ForgotPasswordForm({ onBack }: { onBack?: () => void }) {
   return (
     <form action={formAction} className="space-y-4">
       {state?.error ? (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       ) : null}
       {state?.success ? (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
           {state.success}
         </p>
       ) : null}
-      <Field label="Email" hint="We will send a secure reset link to this address.">
+      <Field label="Email address" hint="We will send a secure reset link to this address.">
         <Input
           name="email"
           type="email"
@@ -41,14 +41,14 @@ export function ForgotPasswordForm({ onBack }: { onBack?: () => void }) {
         <button
           type="button"
           onClick={onBack}
-          className="block w-full text-center text-sm font-medium text-brand-600 hover:underline"
+          className="block w-full text-center text-sm font-semibold text-slate-900 hover:underline"
         >
           Back to sign in
         </button>
       ) : (
         <Link
           href="/login"
-          className="block text-center text-sm font-medium text-brand-600 hover:underline"
+          className="block text-center text-sm font-semibold text-slate-900 hover:underline"
         >
           Back to sign in
         </Link>

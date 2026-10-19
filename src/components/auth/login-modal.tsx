@@ -17,7 +17,7 @@ export interface LoginModalResult {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
+    <Button type="submit" className="w-full" size="lg" disabled={pending}>
       {pending ? 'Signing in...' : 'Sign in and continue'}
     </Button>
   );
@@ -71,7 +71,7 @@ export function LoginModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -80,71 +80,81 @@ export function LoginModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-modal-title"
-        className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+        className="w-full max-w-[420px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20"
       >
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <h2 id="login-modal-title" className="text-lg font-semibold text-slate-900">
-              {view === 'login' ? 'Sign in to enroll' : 'Reset your password'}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {view === 'login'
-                ? 'Use your student account to enroll in this course.'
-                : 'Enter your account email and we will send a reset link.'}
-            </p>
+        <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-600">
+                LMS Platform
+              </p>
+              <h2 id="login-modal-title" className="mt-1 text-lg font-bold tracking-tight text-slate-900">
+                {view === 'login' ? 'Sign in to enroll' : 'Reset your password'}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {view === 'login'
+                  ? 'Use your student account to enroll in this course.'
+                  : 'Enter your account email and we will send a reset link.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              aria-label="Close sign in dialog"
+            >
+              <CloseIcon />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-            aria-label="Close sign in dialog"
-          >
-            <CloseIcon />
-          </button>
         </div>
 
-        {view === 'login' ? (
-          <form action={formAction} className="space-y-4">
-            {state?.error ? (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
-            ) : null}
-            <input type="hidden" name="next" value={next ?? ''} />
-            <Field label="Email">
-              <Input
-                name="email"
-                type="email"
-                autoComplete="email"
+        <div className="p-6">
+          {view === 'login' ? (
+            <form action={formAction} className="space-y-4">
+              {state?.error ? (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {state.error}
+                </p>
+              ) : null}
+              <input type="hidden" name="next" value={next ?? ''} />
+              <Field label="Email address">
+                <Input
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  autoFocus
+                  placeholder="you@example.com"
+                />
+              </Field>
+              <PasswordField
+                label="Password"
+                name="password"
+                autoComplete="current-password"
                 required
-                autoFocus
-                placeholder="you@example.com"
+                placeholder="Enter your password"
               />
-            </Field>
-            <PasswordField
-              label="Password"
-              name="password"
-              autoComplete="current-password"
-              required
-            />
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => setView('forgot')}
-                className="text-xs font-medium text-brand-600 hover:underline"
-              >
-                Forgot password?
-              </button>
-            </div>
-            <SubmitButton />
-            <p className="text-center text-sm text-slate-500">
-              No account?{' '}
-              <Link href="/register" className="font-medium text-brand-600 hover:underline">
-                Create one
-              </Link>
-            </p>
-          </form>
-        ) : (
-          <ForgotPasswordForm onBack={() => setView('login')} />
-        )}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setView('forgot')}
+                  className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+              <SubmitButton />
+              <p className="text-center text-sm text-slate-500">
+                No account?{' '}
+                <Link href="/register" className="font-semibold text-slate-900 hover:underline">
+                  Create one
+                </Link>
+              </p>
+            </form>
+          ) : (
+            <ForgotPasswordForm onBack={() => setView('login')} />
+          )}
+        </div>
       </div>
     </div>
   );

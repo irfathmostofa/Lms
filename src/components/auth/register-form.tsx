@@ -9,7 +9,7 @@ import { PasswordField } from '@/components/auth/password-field';
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
+    <Button type="submit" className="w-full" size="lg" disabled={pending}>
       {pending ? 'Creating account...' : 'Create account'}
     </Button>
   );
@@ -21,10 +21,10 @@ export function RegisterForm() {
   return (
     <form action={formAction} className="space-y-4">
       {state?.error ? (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       ) : null}
       {state?.success ? (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
           {state.success}
         </p>
       ) : null}
@@ -50,7 +50,7 @@ export function RegisterForm() {
       </p>
       <p className="text-center text-sm text-slate-500">
         Already registered?{' '}
-        <Link href="/login" className="font-medium text-brand-600 hover:underline">
+        <Link href="/login" className="font-semibold text-slate-900 hover:underline">
           Sign in
         </Link>
       </p>

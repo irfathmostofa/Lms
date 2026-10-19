@@ -1,22 +1,14 @@
-import Link from 'next/link';
-import { Card, CardBody } from '@/components/ui';
+import { AuthShell } from '@/components/auth/auth-shell';
 import { RegisterForm } from '@/components/auth/register-form';
 
 export default function RegisterPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        <Link href="/" className="mb-6 block text-center text-lg font-semibold text-brand-700">
-          LMS Platform
-        </Link>
-        <Card>
-          <CardBody className="p-6">
-            <h1 className="mb-1 text-lg font-semibold text-slate-900">Create your account</h1>
-            <p className="mb-5 text-sm text-slate-500">Start learning in a minute.</p>
-            <RegisterForm />
-          </CardBody>
-        </Card>
-      </div>
-    </main>
+    <AuthShell
+      eyebrow="Get started"
+      title="Create your account"
+      description="Join as a student and start learning in a minute."
+    >
+      <RegisterForm />
+    </AuthShell>
   );
 }
