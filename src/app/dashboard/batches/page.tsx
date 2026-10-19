@@ -51,7 +51,7 @@ export default async function BatchesPage() {
   const [batchesRes, coursesRes, instructorsRes, sessionsRes] = await Promise.all([
     supabase
       .from('batches')
-      .select('id, name, venue, schedule, start_date, end_date, capacity, is_active, courses(title), profiles(full_name)')
+      .select('id, name, venue, schedule, start_date, end_date, capacity, is_active, courses(title), profiles!batches_instructor_id_fkey(full_name)')
       .order('created_at', { ascending: false })
       .limit(100),
     supabase.from('courses').select('id, title').in('mode', ['offline', 'hybrid']).order('title'),

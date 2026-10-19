@@ -711,12 +711,13 @@ export async function gradeSubmissionAction(formData: FormData) {
 }
 
 // Payments ------------------------------------------------------------------
-export async function verifyPaymentAction(formData: FormData) {
+export async function verifyPaymentAction(_prev: unknown, formData: FormData) {
   const ctx = await requireRole(['admin', 'accountant']);
   const supabase = createClient();
   const id = str(formData, 'id');
-  if (!id) return;
-  await supabase
+  if (!id) return { error: 'Missing payment reference.' };
+
+  const { error } = await supabase
     .from('payments')
     .update({
       status: 'verified',
@@ -724,16 +725,22 @@ export async function verifyPaymentAction(formData: FormData) {
       verified_at: new Date().toISOString(),
     })
     .eq('id', id);
+
+  if (error) return { error: error.message };
+
   revalidatePath('/dashboard/payments');
   revalidatePath('/dashboard/finance');
+  revalidatePath('/dashboard');
+  return { success: 'Payment verified.' };
 }
 
-export async function rejectPaymentAction(formData: FormData) {
+export async function rejectPaymentAction(_prev: unknown, formData: FormData) {
   const ctx = await requireRole(['admin', 'accountant']);
   const supabase = createClient();
   const id = str(formData, 'id');
-  if (!id) return;
-  await supabase
+  if (!id) return { error: 'Missing payment reference.' };
+
+  const { error } = await supabase
     .from('payments')
     .update({
       status: 'rejected',
@@ -742,7 +749,13 @@ export async function rejectPaymentAction(formData: FormData) {
       notes: optional(formData, 'notes'),
     })
     .eq('id', id);
+
+  if (error) return { error: error.message };
+
   revalidatePath('/dashboard/payments');
+  revalidatePath('/dashboard/finance');
+  revalidatePath('/dashboard');
+  return { success: 'Payment rejected.' };
 }
 
 // Finance -------------------------------------------------------------------

@@ -89,7 +89,7 @@ export default async function EnrollmentDetailPage({ params }: { params: { id: s
   const { data: enrollmentRow } = await supabase
     .from('enrollments')
     .select(
-      'id, status, enrolled_at, completed_at, notes, student_id, course_id, batch_id, profiles(full_name, email, phone), courses(title, slug), batches(name)',
+      'id, status, enrolled_at, completed_at, notes, student_id, course_id, batch_id, profiles!enrollments_student_id_fkey(full_name, email, phone), courses(title, slug), batches(name)',
     )
     .eq('id', params.id)
     .maybeSingle();

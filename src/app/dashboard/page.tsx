@@ -29,7 +29,7 @@ export default async function AdminOverviewPage() {
     supabase.from('payments').select('amount').eq('status', 'verified'),
     supabase
       .from('payments')
-      .select('id, amount, method, trx_id, created_at, profiles(full_name)')
+      .select('id, amount, method, trx_id, created_at, profiles!payments_student_id_fkey(full_name)')
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
       .limit(6),

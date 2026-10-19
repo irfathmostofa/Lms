@@ -1,21 +1,8 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getSessionContext } from '@/lib/auth';
-import { rejectPaymentAction, verifyPaymentAction } from '@/actions/dashboard';
-import {
-  Badge,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  EmptyState,
-  Input,
-  PageHeader,
-  StatCard,
-  Table,
-  Td,
-  Th,
-} from '@/components/ui';
+import { Badge, Card, CardBody, CardHeader, EmptyState, PageHeader, StatCard, Table, Td, Th } from '@/components/ui';
+import { PaymentActions } from '@/components/dashboard/payment-actions';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -50,13 +37,13 @@ export default async function PaymentsPage({
   const role = ctx?.profile?.role ?? 'student';
   if (!['admin', 'accountant'].includes(role)) redirect('/dashboard');
 
-  const activeStatus = searchParams.status ?? 'pending';
+  const activeStatus = searchParams.status ?? 'all';
   const supabase = createClient();
 
   let query = supabase
     .from('payments')
     .select(
-      'id, amount, method, gateway, trx_id, sender_number, screenshot_url, status, purpose, created_at, profiles(full_name, email)',
+      'id, amount, method, gateway, trx_id, sender_number, screenshot_url, status, purpose, created_at, profiles!payments_student_id_fkey(full_name, email)',
     )
     .order('created_at', { ascending: false })
     .limit(200);
@@ -70,6 +57,7 @@ export default async function PaymentsPage({
   ]);
 
   const payments = (paymentsRes.data as unknown as PaymentRow[]) ?? [];
+  const loadError = paymentsRes.error?.message;
   const verifiedTotal = (verifiedRes.data ?? []).reduce(
     (sum, row) => sum + Number((row as { amount: number }).amount ?? 0),
     0,
@@ -83,6 +71,12 @@ export default async function PaymentsPage({
         title="Payments"
         description="Verify manual bKash, Nagad, Rocket and Upay submissions. Duplicate TrxIDs are rejected by the database."
       />
+
+      {loadError ? (
+        <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Payments could not be loaded: {loadError}
+        </div>
+      ) : null}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <StatCard label="Pending verification" value={pendingCount.count ?? 0} />
@@ -110,7 +104,14 @@ export default async function PaymentsPage({
         <CardBody className="p-0">
           {payments.length === 0 ? (
             <div className="p-5">
-              <EmptyState title="Nothing here" />
+              <EmptyState
+                title={activeStatus === 'pending' ? 'No pending payments' : 'No payments found'}
+                description={
+                  activeStatus === 'pending'
+                    ? 'New manual submissions will appear here for verification. Switch to All to review payment history.'
+                    : 'Payments will appear here once students submit them.'
+                }
+              />
             </div>
           ) : (
             <Table>
@@ -158,21 +159,7 @@ export default async function PaymentsPage({
                     </Td>
                     <Td>
                       {payment.status === 'pending' ? (
-                        <div className="flex gap-2">
-                          <form action={verifyPaymentAction}>
-                            <input type="hidden" name="id" value={payment.id} />
-                            <Button type="submit" size="sm" variant="success">
-                              Verify
-                            </Button>
-                          </form>
-                          <form action={rejectPaymentAction} className="flex items-center gap-1">
-                            <input type="hidden" name="id" value={payment.id} />
-                            <Input name="notes" placeholder="Reason" className="w-24 py-1 text-xs" />
-                            <Button type="submit" size="sm" variant="danger">
-                              Reject
-                            </Button>
-                          </form>
-                        </div>
+                        <PaymentActions id={payment.id} />
                       ) : (
                         <span className="text-xs text-slate-400">-</span>
                       )}

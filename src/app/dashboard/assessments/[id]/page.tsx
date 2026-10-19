@@ -46,7 +46,7 @@ export default async function AssessmentDetailPage({ params }: { params: { id: s
 
   const { data } = await supabase
     .from('submissions')
-    .select('id, content, file_url, status, marks, feedback, submitted_at, profiles(full_name, email)')
+    .select('id, content, file_url, status, marks, feedback, submitted_at, profiles!submissions_student_id_fkey(full_name, email)')
     .eq('assessment_id', params.id)
     .order('submitted_at', { ascending: false });
 

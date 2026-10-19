@@ -49,7 +49,7 @@ export default async function OrdersPage() {
   const supabase = createClient();
   const { data } = await supabase
     .from('orders')
-    .select('id, order_no, status, total, created_at, shipping_name, profiles(full_name, email)')
+    .select('id, order_no, status, total, created_at, shipping_name, profiles!orders_user_id_fkey(full_name, email)')
     .order('created_at', { ascending: false })
     .limit(100);
 

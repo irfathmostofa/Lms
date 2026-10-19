@@ -148,7 +148,7 @@ export default async function EnrollmentsPage({
     let query = supabase
       .from('enrollments')
       .select(
-        'id, status, enrolled_at, student_id, course_id, profiles(full_name, email), courses(title), batches(name)',
+        'id, status, enrolled_at, student_id, course_id, profiles!enrollments_student_id_fkey(full_name, email), courses(title), batches(name)',
         { count: 'exact' },
       )
       .order('enrolled_at', { ascending: false })
