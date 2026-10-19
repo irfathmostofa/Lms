@@ -131,7 +131,7 @@ function MovingWatermark({ label }: { label: string }) {
   return (
     <span
       aria-hidden="true"
-      className="pointer-events-none absolute z-20 max-w-[70%] truncate rounded bg-black/40 px-2 py-1 text-[10px] font-medium text-white/75 ring-1 ring-inset ring-white/10 backdrop-blur-sm transition-[top,left] duration-[1400ms] ease-in-out sm:text-xs"
+      className="pointer-events-none absolute z-20 max-w-[80%] truncate text-[11px] font-medium text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition-[top,left] duration-[1400ms] ease-in-out sm:text-sm"
       style={{ top: position.top, left: position.left }}
     >
       {label}
@@ -151,6 +151,30 @@ function PauseIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor">
       <path d="M7 5.5h3.5v13H7v-13zM13.5 5.5H17v13h-3.5v-13z" />
+    </svg>
+  );
+}
+
+function FullscreenIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none">
+      {expanded ? (
+        <path
+          d="M9 9H5.5V5.5M15 9h3.5V5.5M9 15H5.5v3.5M15 15h3.5v3.5"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : (
+        <path
+          d="M8 4.5H4.5V8M16 4.5h3.5V8M8 19.5H4.5V16M16 19.5h3.5V16"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
     </svg>
   );
 }
@@ -199,6 +223,7 @@ export function SecureYouTubePlayer({
   const [current, setCurrent] = useState(0);
   const [muted, setMuted] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     setStarted(false);
@@ -208,6 +233,7 @@ export function SecureYouTubePlayer({
     setCurrent(0);
     setMuted(false);
     setFailed(false);
+    setFullscreen(false);
   }, [videoId]);
 
   useEffect(() => {
@@ -336,6 +362,25 @@ export function SecureYouTubePlayer({
     }
   }, []);
 
+  const toggleFullscreen = useCallback(() => {
+    const node = shellRef.current;
+    if (!node) return;
+    const active = document.fullscreenElement;
+    if (active === node) {
+      void document.exitFullscreen();
+      return;
+    }
+    void node.requestFullscreen().catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    const onChange = () => {
+      setFullscreen(document.fullscreenElement === shellRef.current);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
   useEffect(() => {
     if (!started) return;
     const node = shellRef.current;
@@ -358,11 +403,15 @@ export function SecureYouTubePlayer({
         event.preventDefault();
         seek(Math.max(current - 5, 0));
       }
+      if (event.key === 'f' || event.key === 'F') {
+        event.preventDefault();
+        toggleFullscreen();
+      }
     };
 
     node.addEventListener('keydown', onKeyDown);
     return () => node.removeEventListener('keydown', onKeyDown);
-  }, [current, duration, seek, started, toggleMute, togglePlay]);
+  }, [current, duration, seek, started, toggleFullscreen, toggleMute, togglePlay]);
 
   if (!started) {
     return (
@@ -390,7 +439,7 @@ export function SecureYouTubePlayer({
               <PlayIcon />
             </span>
           </span>
-          <span className="pointer-events-none absolute bottom-3 left-3 rounded bg-black/45 px-2 py-1 text-[10px] font-medium text-white/80">
+          <span className="pointer-events-none absolute bottom-3 left-3 text-[10px] font-medium text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
             Protected playback for {watermark}
           </span>
         </button>
@@ -403,7 +452,9 @@ export function SecureYouTubePlayer({
     <div
       ref={shellRef}
       tabIndex={0}
-      className="relative aspect-video w-full select-none overflow-hidden rounded-lg bg-black outline-none"
+      className={`relative w-full select-none overflow-hidden bg-black outline-none ${
+        fullscreen ? 'h-full rounded-none' : 'aspect-video rounded-lg'
+      }`}
       onContextMenu={(event) => event.preventDefault()}
       onDragStart={(event) => event.preventDefault()}
     >
@@ -414,6 +465,7 @@ export function SecureYouTubePlayer({
       <button
         type="button"
         onClick={togglePlay}
+        onDoubleClick={toggleFullscreen}
         aria-label={playing ? 'Pause video' : 'Play video'}
         className="absolute inset-0 z-10 h-full w-full cursor-pointer bg-transparent focus-visible:outline-none"
       />
@@ -476,6 +528,15 @@ export function SecureYouTubePlayer({
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
           <VolumeIcon muted={muted} />
+        </button>
+
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          <FullscreenIcon expanded={fullscreen} />
         </button>
       </div>
     </div>
