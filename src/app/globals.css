@@ -37,6 +37,17 @@ body {
   }
 }
 
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @layer utilities {
   .animate-drawer-in {
     animation: drawer-in 0.2s ease-out;
@@ -44,6 +55,10 @@ body {
 
   .animate-fade-in {
     animation: fade-in 0.15s ease-out;
+  }
+
+  .animate-hero-in {
+    animation: hero-in 0.45s ease-out both;
   }
 
   .scrollbar-thin {
@@ -103,7 +118,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-drawer-in,
-  .animate-fade-in {
+  .animate-fade-in,
+  .animate-hero-in {
     animation: none;
   }
 }
