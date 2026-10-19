@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Button, Field, Input } from '@/components/ui';
 import { signInAction } from '@/actions/auth';
+import { PasswordField } from '@/components/auth/password-field';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -14,7 +15,7 @@ function SubmitButton() {
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const [state, formAction] = useFormState(signInAction, null);
 
   return (
@@ -22,12 +23,25 @@ export function LoginForm() {
       {state?.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       ) : null}
+      <input type="hidden" name="next" value={next ?? ''} />
       <Field label="Email">
         <Input name="email" type="email" autoComplete="email" required placeholder="you@example.com" />
       </Field>
-      <Field label="Password">
-        <Input name="password" type="password" autoComplete="current-password" required />
-      </Field>
+      <PasswordField
+        label="Password"
+        name="password"
+        autoComplete="current-password"
+        required
+        hint="Use the View button to show the password."
+      />
+      <div className="flex justify-end">
+        <Link
+          href="/forgot-password"
+          className="text-xs font-medium text-brand-600 hover:underline"
+        >
+          Forgot password?
+        </Link>
+      </div>
       <SubmitButton />
       <p className="text-center text-sm text-slate-500">
         No account?{' '}

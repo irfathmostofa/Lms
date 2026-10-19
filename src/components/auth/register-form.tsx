@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Button, Field, Input } from '@/components/ui';
 import { signUpAction } from '@/actions/auth';
+import { PasswordField } from '@/components/auth/password-field';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -36,9 +37,13 @@ export function RegisterForm() {
       <Field label="Phone">
         <Input name="phone" placeholder="01XXXXXXXXX" />
       </Field>
-      <Field label="Password" hint="At least 6 characters.">
-        <Input name="password" type="password" autoComplete="new-password" required />
-      </Field>
+      <PasswordField
+        label="Password"
+        name="password"
+        autoComplete="new-password"
+        required
+        hint="At least 6 characters."
+      />
       <SubmitButton />
       <p className="text-xs text-slate-400">
         New accounts are always created as students. An admin can change your role later.

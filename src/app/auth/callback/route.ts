@@ -6,7 +6,11 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/dashboard';
+  const requestedNext = searchParams.get('next') ?? '/dashboard';
+  const next =
+    requestedNext.startsWith('/') && !requestedNext.startsWith('//')
+      ? requestedNext
+      : '/dashboard';
 
   if (code) {
     const response = NextResponse.redirect(`${origin}${next}`);

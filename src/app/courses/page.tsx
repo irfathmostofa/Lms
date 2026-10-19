@@ -4,6 +4,7 @@ import { createPublicClient } from '@/lib/supabase/public';
 import { hasSupabaseEnv } from '@/lib/env';
 import { Card, CardBody, EmptyState, Badge } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils';
+import { SiteHeader } from '@/components/site-header';
 import type { Course } from '@/lib/types';
 
 export const revalidate = 300;
@@ -37,7 +38,9 @@ export default async function CoursesPage() {
   const courses = await getCourses();
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
+    <div className="min-h-screen bg-white">
+      <SiteHeader />
+      <main className="mx-auto max-w-6xl px-6 py-10">
       <div className="mb-8">
         <Link href="/" className="text-sm text-brand-600 hover:underline">
           Back to home
@@ -106,6 +109,7 @@ export default async function CoursesPage() {
           })}
         </div>
       )}
-    </main>
+      </main>
+    </div>
   );
 }

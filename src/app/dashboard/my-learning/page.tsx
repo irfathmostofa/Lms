@@ -63,7 +63,7 @@ export default async function MyLearningPage() {
       {enrollments.length === 0 ? (
         <EmptyState
           title="No courses yet"
-          description="Once the admin enrolls you, your courses will appear here."
+          description="Once you enroll in a course, it will appear here."
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

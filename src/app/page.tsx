@@ -14,7 +14,7 @@ const features = [
   },
   {
     title: 'Enrollment and fees',
-    body: 'Admin-managed enrollment with fee records, discounts, installments, paid and due amounts.',
+    body: 'Student enrollment with fee records, discounts, installments, paid and due amounts.',
   },
   {
     title: 'Payments',

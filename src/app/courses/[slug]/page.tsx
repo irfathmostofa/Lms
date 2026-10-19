@@ -5,11 +5,15 @@ import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createPublicClient } from '@/lib/supabase/public';
+import { createClient } from '@/lib/supabase/server';
+import { getSessionContext } from '@/lib/auth';
 import { hasSupabaseEnv } from '@/lib/env';
 import { unlockCourseAction } from '@/actions/courses';
-import { Badge, ButtonLink, Card, CardBody, CardHeader, Field, Input } from '@/components/ui';
+import { Badge, Card, CardBody, CardHeader, Field, Input } from '@/components/ui';
 import { SubmitButton } from '@/components/dashboard/submit-button';
 import { LazyYouTube } from '@/components/dashboard/lazy-youtube';
+import { CourseEnrollPanel } from '@/components/courses/course-enroll-panel';
+import { SiteHeader } from '@/components/site-header';
 import { courseAccessCookieName, verifyCourseAccess } from '@/lib/course-access';
 import { looksLikeHtml } from '@/lib/rich-text';
 import { formatCurrency, splitList, youtubeIdFromInput } from '@/lib/utils';
@@ -127,11 +131,23 @@ export default async function CourseDetailPage({
   params: { slug: string };
   searchParams: { locked?: string };
 }) {
-  const data = await loadCourse(params.slug);
+  const [data, ctx] = await Promise.all([loadCourse(params.slug), getSessionContext()]);
   if (!data) notFound();
 
   const { course, sections, outline, category } = data;
   if (course.visibility === 'private') notFound();
+
+  let enrollmentStatus: string | null = null;
+  if (ctx) {
+    const supabase = createClient();
+    const { data: enrollment } = await supabase
+      .from('enrollments')
+      .select('status')
+      .eq('student_id', ctx.userId)
+      .eq('course_id', course.id)
+      .maybeSingle();
+    enrollmentStatus = (enrollment as { status: string } | null)?.status ?? null;
+  }
 
   const token = cookies().get(courseAccessCookieName(course.id))?.value;
   const unlocked =
@@ -148,7 +164,9 @@ export default async function CourseDetailPage({
     (course.duration_hours ? `${course.duration_hours} hours of content` : null);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
+    <>
+      <SiteHeader />
+      <main className="mx-auto max-w-6xl px-6 py-10">
       <Link href="/courses" className="text-sm text-brand-600 hover:underline">
         Back to courses
       </Link>
@@ -323,23 +341,20 @@ export default async function CourseDetailPage({
                   </SubmitButton>
                 </form>
               ) : (
-                <>
-                  <ButtonLink
-                    href={`/login?next=/courses/${course.slug}`}
-                    size="lg"
-                    className="w-full"
-                  >
-                    Sign in to enroll
-                  </ButtonLink>
-                  <p className="text-center text-xs text-slate-400">
-                    Enrollment is managed by the admin after payment.
-                  </p>
-                </>
+                <CourseEnrollPanel
+                  courseId={course.id}
+                  courseSlug={course.slug}
+                  price={price}
+                  isLoggedIn={Boolean(ctx)}
+                  role={ctx ? (ctx.profile?.role ?? 'student') : null}
+                  enrollmentStatus={enrollmentStatus}
+                />
               )}
             </CardBody>
           </Card>
         </aside>
       </div>
-    </main>
+      </main>
+    </>
   );
 }
