@@ -11,12 +11,14 @@ export function AuthShell({
   eyebrow,
   title,
   description,
+  header,
   children,
   footer,
 }: {
-  eyebrow: string;
-  title: string;
-  description: string;
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  header?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
 }) {
@@ -78,9 +80,19 @@ export function AuthShell({
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/5 sm:p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">{eyebrow}</p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{title}</h2>
-              <p className="mt-2 text-sm text-slate-500">{description}</p>
+              {header ?? (
+                <>
+                  {eyebrow ? (
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">
+                      {eyebrow}
+                    </p>
+                  ) : null}
+                  {title ? (
+                    <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{title}</h2>
+                  ) : null}
+                  {description ? <p className="mt-2 text-sm text-slate-500">{description}</p> : null}
+                </>
+              )}
               <div className="mt-6">{children}</div>
             </div>
 

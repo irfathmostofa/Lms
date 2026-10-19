@@ -7,6 +7,7 @@ import { Button, Field, Input } from '@/components/ui';
 import { signInModalAction } from '@/actions/auth';
 import { PasswordField } from '@/components/auth/password-field';
 import { ForgotPasswordForm } from '@/components/auth/forgot-password-form';
+import { LoginGreeting } from '@/components/auth/login-greeting';
 import type { UserRole } from '@/lib/types';
 
 export interface LoginModalResult {
@@ -88,14 +89,18 @@ export function LoginModal({
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-600">
                 LMS Platform
               </p>
-              <h2 id="login-modal-title" className="mt-1 text-lg font-bold tracking-tight text-slate-900">
-                {view === 'login' ? 'Sign in to enroll' : 'Reset your password'}
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                {view === 'login'
-                  ? 'Use your student account to enroll in this course.'
-                  : 'Enter your account email and we will send a reset link.'}
-              </p>
+              {view === 'login' ? (
+                <LoginGreeting compact />
+              ) : (
+                <>
+                  <h2 id="login-modal-title" className="mt-1 text-lg font-bold tracking-tight text-slate-900">
+                    Reset your password
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Enter your account email and we will send a reset link.
+                  </p>
+                </>
+              )}
             </div>
             <button
               type="button"
