@@ -1747,6 +1747,39 @@ select (select id from public.categories where slug='programming'), 'Web Develop
 on conflict (slug) do nothing;
 
 -- ============================================================================
+-- Storage: public thumbnails bucket (course images, hero slides, CMS uploads)
+-- ============================================================================
+do $$
+begin
+  if not exists (select 1 from information_schema.schemata where schema_name = 'storage') then
+    return;
+  end if;
+
+  insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values (
+    'thumbnails',
+    'thumbnails',
+    true,
+    5242880,
+    array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  )
+  on conflict (id) do update
+  set
+    public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+  execute 'drop policy if exists thumbnails_public_read on storage.objects';
+  execute 'create policy thumbnails_public_read on storage.objects for select using (bucket_id = ''thumbnails'')';
+  execute 'drop policy if exists thumbnails_staff_insert on storage.objects';
+  execute 'create policy thumbnails_staff_insert on storage.objects for insert with check (bucket_id = ''thumbnails'' and (select public.is_staff()))';
+  execute 'drop policy if exists thumbnails_staff_update on storage.objects';
+  execute 'create policy thumbnails_staff_update on storage.objects for update using (bucket_id = ''thumbnails'' and (select public.is_staff())) with check (bucket_id = ''thumbnails'' and (select public.is_staff()))';
+  execute 'drop policy if exists thumbnails_staff_delete on storage.objects';
+  execute 'create policy thumbnails_staff_delete on storage.objects for delete using (bucket_id = ''thumbnails'' and (select public.is_staff()))';
+end $$;
+
+-- ============================================================================
 -- Promote the first admin after signing up:
 --   update public.profiles set role = 'admin' where id = '<auth-user-uuid>';
 -- ============================================================================

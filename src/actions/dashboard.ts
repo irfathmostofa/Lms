@@ -3,6 +3,7 @@
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireRole } from '@/lib/auth';
 import { CACHE_TAGS } from '@/lib/data';
 import { sanitizeRichText } from '@/lib/rich-text';
@@ -57,8 +58,29 @@ function isUploadableImage(file: File) {
   return /\.(jpe?g|png|webp|gif)$/i.test(file.name);
 }
 
+const PUBLIC_IMAGE_BUCKET = 'thumbnails';
+
+function publicImageClient() {
+  try {
+    return createAdminClient();
+  } catch {
+    return createClient();
+  }
+}
+
+async function ensurePublicImageBucket(client: ReturnType<typeof createClient>) {
+  const { data } = await client.storage.getBucket(PUBLIC_IMAGE_BUCKET);
+  if (data) return;
+  const { error } = await client.storage.createBucket(PUBLIC_IMAGE_BUCKET, {
+    public: true,
+    fileSizeLimit: MAX_IMAGE_BYTES,
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+  });
+  if (error && !/already exists/i.test(error.message)) throw error;
+}
+
 async function uploadPublicImage(
-  supabase: ReturnType<typeof createClient>,
+  _supabase: ReturnType<typeof createClient>,
   file: File,
   folder: string,
 ) {
@@ -69,19 +91,32 @@ async function uploadPublicImage(
   const extension = (file.name.split('.').pop() ?? 'webp').toLowerCase().replace(/[^a-z0-9]/g, '') || 'webp';
   const contentType = file.type || (extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : `image/${extension}`);
   const path = `${folder}/${Date.now()}.${extension}`;
-  const { error } = await supabase.storage.from('thumbnails').upload(path, file, {
+  const client = publicImageClient();
+
+  try {
+    await ensurePublicImageBucket(client);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not create the thumbnails storage bucket.';
+    return { error: 'upload' as const, url: undefined, message };
+  }
+
+  const { error } = await client.storage.from(PUBLIC_IMAGE_BUCKET).upload(path, file, {
     contentType,
     upsert: true,
   });
   if (error) return { error: 'upload' as const, url: undefined, message: error.message };
 
-  const { data } = supabase.storage.from('thumbnails').getPublicUrl(path);
+  const { data } = client.storage.from(PUBLIC_IMAGE_BUCKET).getPublicUrl(path);
   return { error: null, url: data.publicUrl };
 }
 
 function imageUploadError(uploaded: { error?: string | null; message?: string }) {
   if (uploaded.error === 'image') return 'Use a JPG, PNG, WebP or GIF image up to 5 MB.';
-  return uploaded.message || 'The image could not be uploaded.';
+  const message = uploaded.message || 'The image could not be uploaded.';
+  if (/bucket not found/i.test(message)) {
+    return 'The thumbnails storage bucket is missing. Run supabase/migrations/20261020_storage_buckets.sql in the Supabase SQL editor, then try again.';
+  }
+  return message;
 }
 
 async function uploadThumbnail(

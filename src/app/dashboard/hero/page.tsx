@@ -27,7 +27,7 @@ export default async function HeroSlidesPage() {
     <>
       <PageHeader
         title="Hero slider"
-        description="Upload homepage slider images. Files are compressed to 75% quality before they are saved."
+        description="Upload homepage slider images into the public thumbnails bucket. Files are compressed to 75% quality before they are saved."
         action={
           <FormModal
             title="Add slide"

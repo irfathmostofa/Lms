@@ -60,8 +60,9 @@ supabase/functions             sslcommerz-init and sslcommerz-ipn Edge Functions
 
 2. Run `schema.sql` once in the SQL Editor.
 
-3. Create Storage buckets: `receipts` and `payment-screenshots` (private), `thumbnails` and
-   `avatars` (public). Homepage slider images are stored in the public `thumbnails` bucket.
+3. Create Storage buckets: `receipts` and `payment-screenshots` (private), plus `avatars`
+   (public). The public `thumbnails` bucket (course images, hero slides, CMS uploads) is
+   created by `schema.sql` and `supabase/migrations/20261020_storage_buckets.sql`.
 
 4. Sign up in the app, then promote yourself to admin from the SQL Editor (no auth context):
 
