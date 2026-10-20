@@ -14,11 +14,13 @@ export function CourseSearch({
   defaultValue = '',
   className,
   inputId,
+  autoFocus = false,
 }: {
   variant?: 'header' | 'hero';
   defaultValue?: string;
   className?: string;
   inputId?: string;
+  autoFocus?: boolean;
 }) {
   const isHero = variant === 'hero';
   const fieldId = inputId ?? `course-search-${variant}`;
@@ -31,7 +33,7 @@ export function CourseSearch({
       <SearchIcon
         className={cn(
           'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400',
-          isHero ? 'h-5 w-5' : 'h-4 w-4',
+          isHero ? 'h-5 w-5 sm:left-4' : 'h-4 w-4',
         )}
       />
       <input
@@ -39,20 +41,21 @@ export function CourseSearch({
         type="search"
         name="q"
         defaultValue={defaultValue}
-        placeholder={isHero ? 'Search for a course, skill or instructor' : 'Search courses'}
+        placeholder={isHero ? 'Search a course, skill or topic' : 'Search courses'}
         autoComplete="off"
         enterKeyHint="search"
+        autoFocus={autoFocus}
         className={cn(
-          'w-full rounded-lg border bg-white text-slate-900 outline-none placeholder:text-slate-400',
+          'w-full border bg-white text-slate-900 outline-none placeholder:text-slate-400',
           isHero
-            ? 'h-12 border-slate-200 py-3 pl-11 pr-28 text-sm shadow-lg shadow-slate-900/10 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30 sm:h-14 sm:text-base'
-            : 'h-10 border-slate-200 py-2 pl-9 pr-3 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30',
+            ? 'h-12 rounded-2xl border-slate-200 py-3 pl-11 pr-24 text-sm shadow-xl shadow-slate-950/15 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30 sm:h-14 sm:pl-12 sm:pr-32 sm:text-base'
+            : 'h-11 rounded-xl border-slate-200 py-2 pl-9 pr-3 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30',
         )}
       />
       {isHero ? (
         <button
           type="submit"
-          className="absolute right-1.5 top-1/2 inline-flex h-9 -translate-y-1/2 items-center justify-center rounded-md bg-brand-600 px-4 text-sm font-semibold text-white transition hover:bg-brand-700 sm:h-11 sm:px-5"
+          className="absolute right-1.5 top-1/2 inline-flex h-9 -translate-y-1/2 items-center justify-center rounded-xl bg-brand-600 px-3.5 text-sm font-semibold text-white transition hover:bg-brand-700 sm:right-2 sm:h-11 sm:px-5"
         >
           Search
         </button>

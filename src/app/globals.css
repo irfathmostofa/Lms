@@ -48,6 +48,17 @@ body {
   }
 }
 
+@keyframes search-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes notice-marquee {
   from {
     transform: translateX(0);
@@ -68,6 +79,10 @@ body {
 
   .animate-hero-in {
     animation: hero-in 0.45s ease-out both;
+  }
+
+  .animate-search-in {
+    animation: search-in 0.2s ease-out both;
   }
 
   .notice-marquee {
@@ -140,6 +155,7 @@ body {
   .animate-drawer-in,
   .animate-fade-in,
   .animate-hero-in,
+  .animate-search-in,
   .notice-marquee-track {
     animation: none;
   }
