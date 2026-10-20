@@ -9,6 +9,7 @@ import { sanitizeRichText } from '@/lib/rich-text';
 import { fromDateTimeLocal, slugify, youtubeIdFromInput } from '@/lib/utils';
 import { assessmentTypeConfig, resolveDelivery } from '@/lib/assessments';
 import { parseQuizQuestions, quizQuestionRows, quizTotalMarks } from '@/lib/quiz';
+import { isAllowedImage, MAX_IMAGE_BYTES } from '@/lib/image';
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -36,8 +37,6 @@ function list(formData: FormData, key: string) {
   );
 }
 
-const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;
-
 async function resolveAuthorName(
   supabase: ReturnType<typeof createClient>,
   authorId: string | null,
@@ -51,6 +50,27 @@ async function resolveAuthorName(
   return data?.full_name ?? data?.email ?? null;
 }
 
+async function uploadPublicImage(
+  supabase: ReturnType<typeof createClient>,
+  file: File,
+  folder: string,
+) {
+  if (!isAllowedImage(file) || file.size > MAX_IMAGE_BYTES) {
+    return { error: 'image' as const, url: undefined };
+  }
+
+  const extension = (file.name.split('.').pop() ?? 'webp').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const path = `${folder}/${Date.now()}.${extension || 'webp'}`;
+  const { error } = await supabase.storage.from('thumbnails').upload(path, file, {
+    contentType: file.type || 'image/webp',
+    upsert: true,
+  });
+  if (error) return { error: 'upload' as const, url: undefined };
+
+  const { data } = supabase.storage.from('thumbnails').getPublicUrl(path);
+  return { error: null, url: data.publicUrl };
+}
+
 async function uploadThumbnail(
   supabase: ReturnType<typeof createClient>,
   formData: FormData,
@@ -58,20 +78,7 @@ async function uploadThumbnail(
 ) {
   const file = formData.get('thumbnail_file');
   if (file instanceof File && file.size > 0) {
-    if (!file.type.startsWith('image/') || file.size > MAX_THUMBNAIL_BYTES) {
-      return { error: 'image' as const, url: undefined };
-    }
-
-    const extension = (file.name.split('.').pop() ?? 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const path = `${courseId}/${Date.now()}.${extension || 'jpg'}`;
-    const { error } = await supabase.storage.from('thumbnails').upload(path, file, {
-      contentType: file.type,
-      upsert: true,
-    });
-    if (error) return { error: 'upload' as const, url: undefined };
-
-    const { data } = supabase.storage.from('thumbnails').getPublicUrl(path);
-    return { error: null, url: data.publicUrl };
+    return uploadPublicImage(supabase, file, `courses/${courseId}`);
   }
 
   return { error: null, url: optional(formData, 'thumbnail_url') };
@@ -1046,4 +1053,87 @@ export async function updateSettingAction(formData: FormData) {
   await supabase.from('settings').update({ value: str(formData, 'value') }).eq('key', key);
   revalidateTag(CACHE_TAGS.settings);
   revalidatePath('/dashboard/settings');
+}
+
+function revalidateHero() {
+  revalidateTag(CACHE_TAGS.heroSlides);
+  revalidatePath('/');
+  revalidatePath('/dashboard/hero');
+}
+
+export async function createHeroSlideAction(_prev: unknown, formData: FormData) {
+  const ctx = await requireRole(['admin']);
+  const supabase = createClient();
+  const title = str(formData, 'title');
+  const file = formData.get('image_file');
+  if (!title) return { error: 'Enter a title.' };
+  if (!(file instanceof File) || file.size === 0) return { error: 'Upload a slider image.' };
+
+  const uploaded = await uploadPublicImage(supabase, file, 'hero');
+  if (uploaded.error || !uploaded.url) {
+    return { error: uploaded.error === 'image' ? 'Use a JPG, PNG or WebP image up to 5 MB.' : 'The image could not be uploaded.' };
+  }
+
+  const { error } = await supabase.from('hero_slides').insert({
+    title,
+    eyebrow: optional(formData, 'eyebrow'),
+    description: optional(formData, 'description'),
+    image_url: uploaded.url,
+    href: optional(formData, 'href'),
+    cta_label: optional(formData, 'cta_label'),
+    secondary_href: optional(formData, 'secondary_href'),
+    secondary_label: optional(formData, 'secondary_label'),
+    sort_order: num(formData, 'sort_order'),
+    is_active: str(formData, 'is_active') === 'on',
+    created_by: ctx.userId,
+  });
+  if (error) return { error: error.message };
+  revalidateHero();
+  return { success: 'Slide added.' };
+}
+
+export async function updateHeroSlideAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  const title = str(formData, 'title');
+  if (!id) return { error: 'Missing slide.' };
+  if (!title) return { error: 'Enter a title.' };
+
+  const patch: Record<string, unknown> = {
+    title,
+    eyebrow: optional(formData, 'eyebrow'),
+    description: optional(formData, 'description'),
+    href: optional(formData, 'href'),
+    cta_label: optional(formData, 'cta_label'),
+    secondary_href: optional(formData, 'secondary_href'),
+    secondary_label: optional(formData, 'secondary_label'),
+    sort_order: num(formData, 'sort_order'),
+    is_active: str(formData, 'is_active') === 'on',
+  };
+
+  const file = formData.get('image_file');
+  if (file instanceof File && file.size > 0) {
+    const uploaded = await uploadPublicImage(supabase, file, 'hero');
+    if (uploaded.error || !uploaded.url) {
+      return { error: uploaded.error === 'image' ? 'Use a JPG, PNG or WebP image up to 5 MB.' : 'The image could not be uploaded.' };
+    }
+    patch.image_url = uploaded.url;
+  }
+
+  const { error } = await supabase.from('hero_slides').update(patch).eq('id', id);
+  if (error) return { error: error.message };
+  revalidateHero();
+  return { success: 'Slide saved.' };
+}
+
+export async function deleteHeroSlideAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  if (!id) return { error: 'Missing slide.' };
+  const { error } = await supabase.from('hero_slides').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidateHero();
+  return { success: 'Slide deleted.' };
 }

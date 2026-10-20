@@ -1,5 +1,8 @@
+import { unstable_cache } from 'next/cache';
 import { createPublicClient } from '@/lib/supabase/public';
 import { hasSupabaseEnv } from '@/lib/env';
+import { CACHE_TAGS } from '@/lib/data';
+import type { HeroSlide } from '@/lib/types';
 
 export interface HomeCourse {
   id: string;
@@ -274,6 +277,27 @@ const DEMO_STATS: HomeStats = {
   resources: 36,
   categories: 8,
 };
+
+export const getHomeHeroSlides = unstable_cache(
+  async function getHomeHeroSlides(): Promise<HeroSlide[]> {
+    if (!hasSupabaseEnv()) return [];
+    try {
+      const supabase = createPublicClient();
+      const { data, error } = await supabase
+        .from('hero_slides')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order')
+        .order('created_at', { ascending: false });
+      if (error) return [];
+      return (data as HeroSlide[]) ?? [];
+    } catch {
+      return [];
+    }
+  },
+  ['home:hero-slides'],
+  { revalidate: 300, tags: [CACHE_TAGS.heroSlides] },
+);
 
 const COURSE_FIELDS =
   'id, title, slug, summary, thumbnail_url, category_id, mode, level, price, discount_price, duration_label, duration_hours, total_lessons, is_featured, published_at';

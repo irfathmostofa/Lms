@@ -220,3 +220,19 @@ export interface Product {
   stock: number;
   is_active: boolean;
 }
+
+export interface HeroSlide {
+  id: string;
+  eyebrow: string | null;
+  title: string;
+  description: string | null;
+  image_url: string;
+  href: string | null;
+  cta_label: string | null;
+  secondary_href: string | null;
+  secondary_label: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { ComponentProps, ReactNode } from 'react';
+import { forwardRef, type ComponentProps, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export function Card({ className, children, ...props }: ComponentProps<'div'>) {
@@ -151,9 +151,12 @@ export function Field({
 export const inputClass =
   'w-full min-h-10 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 sm:text-sm';
 
-export function Input({ className, ...props }: ComponentProps<'input'>) {
-  return <input className={cn(inputClass, className)} {...props} />;
-}
+export const Input = forwardRef<HTMLInputElement, ComponentProps<'input'>>(function Input(
+  { className, ...props },
+  ref,
+) {
+  return <input ref={ref} className={cn(inputClass, className)} {...props} />;
+});
 
 export function Textarea({ className, ...props }: ComponentProps<'textarea'>) {
   return <textarea className={cn(inputClass, 'min-h-24', className)} {...props} />;

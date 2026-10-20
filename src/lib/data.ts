@@ -9,6 +9,7 @@ import { hasSupabaseEnv } from '@/lib/env';
 export const CACHE_TAGS = {
   lookups: 'lookups',
   settings: 'settings',
+  heroSlides: 'hero-slides',
 } as const;
 
 export interface LookupOption {

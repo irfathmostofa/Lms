@@ -5,6 +5,7 @@ import { createCourseAction, updateCourseBasicAction } from '@/actions/dashboard
 import { Field, Input, Select } from '@/components/ui';
 import { SubmitButton } from '@/components/dashboard/submit-button';
 import { RichTextEditor } from '@/components/dashboard/rich-text-editor';
+import { ImageUpload } from '@/components/dashboard/image-upload';
 import { toDateTimeLocal } from '@/lib/utils';
 import type { Course, CourseMode, CourseVisibility } from '@/lib/types';
 
@@ -37,12 +38,6 @@ export function CourseBasicForm({
   );
   const [thumbnail, setThumbnail] = useState(course?.thumbnail_url ?? '');
   const action = course ? updateCourseBasicAction : createCourseAction;
-
-  function previewFile(file: File | undefined) {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setThumbnail(url);
-  }
 
   return (
     <form action={action} className="space-y-6">
@@ -154,28 +149,17 @@ export function CourseBasicForm({
         </Field>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-3">
-          <Field label="Featured image" hint="Upload an image or paste an image URL.">
-            <Input name="thumbnail_url" value={thumbnail} onChange={(event) => setThumbnail(event.target.value)} />
-          </Field>
-          <Field label="Upload image" hint="JPG, PNG or WebP up to 5 MB.">
-            <Input
-              name="thumbnail_file"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={(event) => previewFile(event.target.files?.[0])}
-            />
-          </Field>
-        </div>
-        <div className="flex items-end">
-          <div
-            className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 bg-cover bg-center text-xs text-slate-400"
-            style={thumbnail ? { backgroundImage: `url(${thumbnail})` } : undefined}
-          >
-            {thumbnail ? null : 'Image preview'}
-          </div>
-        </div>
+      <div className="space-y-3">
+        <Field label="Featured image URL" hint="Paste a URL, or upload below. Uploads are compressed to 75% quality.">
+          <Input name="thumbnail_url" value={thumbnail} onChange={(event) => setThumbnail(event.target.value)} />
+        </Field>
+        <ImageUpload
+          label="Upload image"
+          fileName="thumbnail_file"
+          previewUrl={thumbnail}
+          maxWidth={1600}
+          maxHeight={900}
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

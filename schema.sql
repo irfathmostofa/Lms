@@ -507,6 +507,24 @@ create table public.settings (
 );
 create index settings_group_idx on public.settings(group_name);
 
+create table public.hero_slides (
+  id              uuid primary key default gen_random_uuid(),
+  eyebrow         text,
+  title           text not null,
+  description     text,
+  image_url       text not null,
+  href            text,
+  cta_label       text,
+  secondary_href  text,
+  secondary_label text,
+  sort_order      int not null default 0,
+  is_active       boolean not null default true,
+  created_by      uuid references public.profiles(id) on delete set null,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+create index hero_slides_active_idx on public.hero_slides(is_active, sort_order);
+
 -- ---------------------------------------------------------------------------
 -- System
 -- ---------------------------------------------------------------------------
@@ -907,7 +925,7 @@ begin
   foreach t in array array[
     'profiles','categories','courses','course_sections','lessons','batches',
     'attendance','enrollments','fee_records','products','orders','payments',
-    'assessments','lesson_progress'
+    'assessments','lesson_progress','hero_slides'
   ] loop
     execute format(
       'create trigger %1$s_touch before update on public.%1$s
@@ -1096,7 +1114,7 @@ begin
     'attendance','enrollments','fee_records','products','product_files','orders',
     'order_items','payments','product_access','lesson_progress','assessments',
     'submissions','finance_categories','expenses','manual_incomes','lookups',
-    'settings','audit_logs','notifications'
+    'settings','hero_slides','audit_logs','notifications'
   ] loop
     execute format('alter table public.%I enable row level security;', t);
   end loop;
@@ -1431,6 +1449,10 @@ create policy lookups_admin on public.lookups
 
 create policy settings_read on public.settings for select using (is_public or (select public.is_staff()));
 create policy settings_admin on public.settings
+  for all using ((select public.is_admin())) with check ((select public.is_admin()));
+
+create policy hero_slides_read on public.hero_slides for select using (is_active or (select public.is_admin()));
+create policy hero_slides_admin on public.hero_slides
   for all using ((select public.is_admin())) with check ((select public.is_admin()));
 
 -- system --------------------------------------------------------------------
