@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getSessionContext } from '@/lib/auth';
 import { NoticeForm } from '@/components/dashboard/notice-form';
 import { ConfirmDeleteButton } from '@/components/dashboard/confirm-delete-button';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { deleteNoticeAction } from '@/actions/dashboard';
 import { Badge, Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui';
 import { formatDateTime } from '@/lib/utils';
@@ -28,6 +29,15 @@ export default async function NoticesPage() {
       <PageHeader
         title="Notices"
         description="Timed banner messages shown at the top of public pages. A notice only appears between its start and end times."
+        action={
+          <FormModal
+            title="Add notice"
+            description="Leave start/end empty to show immediately until you hide it."
+            triggerLabel="Add notice"
+          >
+            <NoticeForm />
+          </FormModal>
+        }
       />
 
       {error ? (
@@ -36,15 +46,8 @@ export default async function NoticesPage() {
         </p>
       ) : null}
 
-      <Card className="mb-6">
-        <CardHeader title="Add notice" description="Leave start/end empty to show immediately until you hide it." />
-        <CardBody>
-          <NoticeForm />
-        </CardBody>
-      </Card>
-
       {notices.length === 0 ? (
-        <EmptyState title="No notices yet" description="Add a notice above. It will appear as a marquee on public pages while it is active." />
+        <EmptyState title="No notices yet" description="Add a notice. It will appear as a marquee on public pages while it is active." />
       ) : (
         <div className="space-y-4">
           {notices.map((notice) => (
@@ -57,6 +60,9 @@ export default async function NoticesPage() {
                     <Badge tone={notice.is_active ? 'green' : 'amber'}>
                       {notice.is_active ? 'published' : 'hidden'}
                     </Badge>
+                    <FormModal title="Edit notice" triggerLabel="Edit" triggerVariant="outline" triggerSize="sm">
+                      <NoticeForm notice={notice} />
+                    </FormModal>
                     <ConfirmDeleteButton
                       action={deleteNoticeAction}
                       id={notice.id}
@@ -65,9 +71,6 @@ export default async function NoticesPage() {
                   </div>
                 }
               />
-              <CardBody>
-                <NoticeForm notice={notice} />
-              </CardBody>
             </Card>
           ))}
         </div>

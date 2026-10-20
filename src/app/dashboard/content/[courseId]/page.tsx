@@ -15,6 +15,7 @@ import {
   Select,
   Textarea,
 } from '@/components/ui';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { SubmitButton } from '@/components/dashboard/submit-button';
 import type { Course, CourseSection, Lesson } from '@/lib/types';
 
@@ -47,34 +48,34 @@ export default async function CurriculumPage({ params }: { params: { courseId: s
       <PageHeader
         title={`Curriculum: ${typedCourse.title}`}
         description="Add sections, then add lessons inside each section."
+        action={
+          <FormModal title="Add section" triggerLabel="Add section">
+            <form action={createSectionAction} className="grid gap-3 sm:grid-cols-2">
+              <input type="hidden" name="course_id" value={typedCourse.id} />
+              <div className="sm:col-span-2">
+                <Field label="Title">
+                  <Input name="title" required />
+                </Field>
+              </div>
+              <Field label="Sort order">
+                <Input name="sort_order" type="number" defaultValue={sections.length} />
+              </Field>
+              <Field label="Free preview">
+                <Select name="is_free" defaultValue="off">
+                  <option value="off">No</option>
+                  <option value="on">Yes</option>
+                </Select>
+              </Field>
+              <div className="sm:col-span-2">
+                <SubmitButton pendingLabel="Adding...">Add section</SubmitButton>
+              </div>
+            </form>
+          </FormModal>
+        }
       />
 
-      <Card className="mb-6">
-        <CardHeader title="Add section" />
-        <CardBody>
-          <form action={createSectionAction} className="grid gap-3 sm:grid-cols-4">
-            <input type="hidden" name="course_id" value={typedCourse.id} />
-            <Field label="Title">
-              <Input name="title" required />
-            </Field>
-            <Field label="Sort order">
-              <Input name="sort_order" type="number" defaultValue={sections.length} />
-            </Field>
-            <Field label="Free preview">
-              <Select name="is_free" defaultValue="off">
-                <option value="off">No</option>
-                <option value="on">Yes</option>
-              </Select>
-            </Field>
-            <div className="flex items-end">
-              <SubmitButton pendingLabel="Adding...">Add section</SubmitButton>
-            </div>
-          </form>
-        </CardBody>
-      </Card>
-
       {sections.length === 0 ? (
-        <EmptyState title="No sections yet" description="Add your first section above." />
+        <EmptyState title="No sections yet" description="Use Add section to create your first section." />
       ) : (
         <div className="space-y-4">
           {sections.map((section) => {
@@ -111,50 +112,54 @@ export default async function CurriculumPage({ params }: { params: { courseId: s
                     ) : null}
                   </ul>
 
-                  <form action={createLessonAction} className="grid gap-3 sm:grid-cols-3">
-                    <input type="hidden" name="section_id" value={section.id} />
-                    <input type="hidden" name="course_id" value={typedCourse.id} />
-                    <Field label="Lesson title">
-                      <Input name="title" required />
-                    </Field>
-                    <Field label="Type">
-                      <Select name="type" defaultValue="text">
-                        <option value="text">Text</option>
-                        <option value="image">Image</option>
-                        <option value="pdf">PDF</option>
-                        <option value="youtube">YouTube</option>
-                        <option value="link">Link</option>
-                      </Select>
-                    </Field>
-                    <Field label="Duration (min)">
-                      <Input name="duration_min" type="number" min="0" />
-                    </Field>
-                    <div className="sm:col-span-2">
-                      <Field label="Media / file URL" hint="For images, PDFs or external links.">
-                        <Input name="media_url" />
+                  <FormModal title={`Add lesson to ${section.title}`} triggerLabel="Add lesson" triggerVariant="secondary" triggerSize="sm" size="xl">
+                    <form action={createLessonAction} className="grid gap-3 sm:grid-cols-2">
+                      <input type="hidden" name="section_id" value={section.id} />
+                      <input type="hidden" name="course_id" value={typedCourse.id} />
+                      <div className="sm:col-span-2">
+                        <Field label="Lesson title">
+                          <Input name="title" required />
+                        </Field>
+                      </div>
+                      <Field label="Type">
+                        <Select name="type" defaultValue="text">
+                          <option value="text">Text</option>
+                          <option value="image">Image</option>
+                          <option value="pdf">PDF</option>
+                          <option value="youtube">YouTube</option>
+                          <option value="link">Link</option>
+                        </Select>
                       </Field>
-                    </div>
-                    <Field label="YouTube video ID">
-                      <Input name="youtube_id" placeholder="dQw4w9WgXcQ" />
-                    </Field>
-                    <div className="sm:col-span-3">
-                      <Field label="Text content">
-                        <Textarea name="content" />
+                      <Field label="Duration (min)">
+                        <Input name="duration_min" type="number" min="0" />
                       </Field>
-                    </div>
-                    <Field label="Sort order">
-                      <Input name="sort_order" type="number" defaultValue={sectionLessons.length} />
-                    </Field>
-                    <Field label="Preview">
-                      <Select name="is_preview" defaultValue="off">
-                        <option value="off">No</option>
-                        <option value="on">Yes</option>
-                      </Select>
-                    </Field>
-                    <div className="flex items-end">
-                      <SubmitButton pendingLabel="Adding...">Add lesson</SubmitButton>
-                    </div>
-                  </form>
+                      <div className="sm:col-span-2">
+                        <Field label="Media / file URL" hint="For images, PDFs or external links.">
+                          <Input name="media_url" />
+                        </Field>
+                      </div>
+                      <Field label="YouTube video ID">
+                        <Input name="youtube_id" placeholder="dQw4w9WgXcQ" />
+                      </Field>
+                      <Field label="Preview">
+                        <Select name="is_preview" defaultValue="off">
+                          <option value="off">No</option>
+                          <option value="on">Yes</option>
+                        </Select>
+                      </Field>
+                      <div className="sm:col-span-2">
+                        <Field label="Text content">
+                          <Textarea name="content" />
+                        </Field>
+                      </div>
+                      <Field label="Sort order">
+                        <Input name="sort_order" type="number" defaultValue={sectionLessons.length} />
+                      </Field>
+                      <div className="flex items-end">
+                        <SubmitButton pendingLabel="Adding...">Add lesson</SubmitButton>
+                      </div>
+                    </form>
+                  </FormModal>
                 </CardBody>
               </Card>
             );

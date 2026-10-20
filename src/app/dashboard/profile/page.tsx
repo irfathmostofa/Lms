@@ -11,6 +11,7 @@ import {
   PageHeader,
   Textarea,
 } from '@/components/ui';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { SubmitButton } from '@/components/dashboard/submit-button';
 import { ROLE_LABEL } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
@@ -30,12 +31,11 @@ export default async function ProfilePage() {
 
   return (
     <>
-      <PageHeader title="Profile" description="Update your personal details." />
-
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <Card>
-          <CardHeader title="Personal information" />
-          <CardBody>
+      <PageHeader
+        title="Profile"
+        description="Update your personal details."
+        action={
+          <FormModal title="Edit profile" triggerLabel="Edit profile">
             <form action={updateProfileAction} className="grid gap-4 sm:grid-cols-2">
               <Field label="Full name">
                 <Input name="full_name" defaultValue={profile?.full_name ?? ''} />
@@ -52,6 +52,26 @@ export default async function ProfilePage() {
                 <SubmitButton pendingLabel="Saving...">Save changes</SubmitButton>
               </div>
             </form>
+          </FormModal>
+        }
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <Card>
+          <CardHeader title="Personal information" />
+          <CardBody className="space-y-3 text-sm text-slate-600">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-slate-400">Full name</span>
+              <span className="text-right text-slate-800">{profile?.full_name || '-'}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-slate-400">Phone</span>
+              <span className="text-right text-slate-800">{profile?.phone || '-'}</span>
+            </div>
+            <div>
+              <p className="text-slate-400">Bio</p>
+              <p className="mt-1 whitespace-pre-wrap text-slate-800">{profile?.bio || 'No bio yet.'}</p>
+            </div>
           </CardBody>
         </Card>
 

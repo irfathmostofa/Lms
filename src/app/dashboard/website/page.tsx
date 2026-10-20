@@ -7,6 +7,7 @@ import { HomeCategoriesForm } from '@/components/dashboard/home-categories-form'
 import { PartnerForm } from '@/components/dashboard/partner-form';
 import { TestimonialForm } from '@/components/dashboard/testimonial-form';
 import { ConfirmDeleteButton } from '@/components/dashboard/confirm-delete-button';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { deletePartnerAction, deleteTestimonialAction } from '@/actions/dashboard';
 import { Badge, Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui';
 import type { Category, PageSection, Partner, Testimonial } from '@/lib/types';
@@ -40,6 +41,16 @@ export default async function WebsiteCmsPage() {
       <PageHeader
         title="Home and about"
         description="Choose which sections appear on the public site, pick home category rows, and manage partners and reviews."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <FormModal title="Add partner" description="Logos appear in a 3-up carousel on Home and About." triggerLabel="Add partner">
+              <PartnerForm />
+            </FormModal>
+            <FormModal title="Add review" description="Student testimonials appear in a 3-up carousel." triggerLabel="Add review" triggerVariant="secondary">
+              <TestimonialForm />
+            </FormModal>
+          </div>
+        }
       />
 
       {sectionError || partnerError || testimonialError ? (
@@ -49,28 +60,69 @@ export default async function WebsiteCmsPage() {
       ) : null}
 
       <Card className="mb-6">
-        <CardHeader title="Section visibility" description="Turn Home and About blocks on or off." />
+        <CardHeader
+          title="Section visibility"
+          description="Turn Home and About blocks on or off."
+          action={
+            <FormModal title="Edit section visibility" triggerLabel="Edit sections" triggerVariant="outline" triggerSize="sm">
+              <PageSectionsForm sections={sections} />
+            </FormModal>
+          }
+        />
         <CardBody>
-          <PageSectionsForm sections={sections} />
+          {sections.length === 0 ? (
+            <p className="text-sm text-slate-500">No page sections yet.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {sections.map((section) => (
+                <li key={section.key} className="flex items-center justify-between gap-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">{section.label}</p>
+                    <p className="text-xs capitalize text-slate-400">{section.page}</p>
+                  </div>
+                  <Badge tone={section.enabled ? 'green' : 'amber'}>
+                    {section.enabled ? 'visible' : 'hidden'}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardBody>
       </Card>
 
       <Card className="mb-8">
-        <CardHeader title="Home category sections" description="Only checked categories get their own course row on the homepage." />
+        <CardHeader
+          title="Home category sections"
+          description="Only checked categories get their own course row on the homepage."
+          action={
+            <FormModal title="Edit home categories" triggerLabel="Edit categories" triggerVariant="outline" triggerSize="sm">
+              <HomeCategoriesForm categories={categories} />
+            </FormModal>
+          }
+        />
         <CardBody>
-          <HomeCategoriesForm categories={categories} />
-        </CardBody>
-      </Card>
-
-      <Card className="mb-6">
-        <CardHeader title="Add partner" description="Logos appear in a 3-up carousel on Home and About." />
-        <CardBody>
-          <PartnerForm />
+          {categories.length === 0 ? (
+            <p className="text-sm text-slate-500">No categories yet. Create course categories first.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {categories.map((category) => (
+                <li key={category.id} className="flex items-center justify-between gap-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">{category.name}</p>
+                    <p className="text-xs text-slate-400">{category.slug}</p>
+                  </div>
+                  <Badge tone={category.show_on_home !== false ? 'green' : 'amber'}>
+                    {category.show_on_home !== false ? 'on home' : 'hidden'}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardBody>
       </Card>
 
       {partners.length === 0 ? (
-        <EmptyState title="No partners yet" description="Add partner logos above." />
+        <EmptyState title="No partners yet" description="Add partner logos." />
       ) : (
         <div className="mb-8 space-y-4">
           {partners.map((partner) => (
@@ -85,6 +137,9 @@ export default async function WebsiteCmsPage() {
                     <Badge tone={partner.is_active ? 'green' : 'amber'}>
                       {partner.is_active ? 'published' : 'hidden'}
                     </Badge>
+                    <FormModal title="Edit partner" triggerLabel="Edit" triggerVariant="outline" triggerSize="sm">
+                      <PartnerForm partner={partner} />
+                    </FormModal>
                     <ConfirmDeleteButton
                       action={deletePartnerAction}
                       id={partner.id}
@@ -93,30 +148,22 @@ export default async function WebsiteCmsPage() {
                   </div>
                 }
               />
-              <CardBody className="grid gap-6 lg:grid-cols-[160px_1fr]">
-                <div className="relative aspect-[2/1] overflow-hidden rounded-lg bg-white ring-1 ring-slate-200">
+              <CardBody>
+                <div className="relative aspect-[2/1] max-w-[160px] overflow-hidden rounded-lg bg-white ring-1 ring-slate-200">
                   {partner.logo_url ? (
                     <Image src={partner.logo_url} alt={partner.name} fill className="object-contain p-3" sizes="160px" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs text-slate-400">No logo</div>
                   )}
                 </div>
-                <PartnerForm partner={partner} />
               </CardBody>
             </Card>
           ))}
         </div>
       )}
 
-      <Card className="mb-6">
-        <CardHeader title="Add review" description="Student testimonials appear in a 3-up carousel." />
-        <CardBody>
-          <TestimonialForm />
-        </CardBody>
-      </Card>
-
       {testimonials.length === 0 ? (
-        <EmptyState title="No reviews yet" description="Add student reviews above." />
+        <EmptyState title="No reviews yet" description="Add student reviews." />
       ) : (
         <div className="space-y-4">
           {testimonials.map((item) => (
@@ -129,6 +176,9 @@ export default async function WebsiteCmsPage() {
                     <Badge tone={item.is_active ? 'green' : 'amber'}>
                       {item.is_active ? 'published' : 'hidden'}
                     </Badge>
+                    <FormModal title="Edit review" triggerLabel="Edit" triggerVariant="outline" triggerSize="sm">
+                      <TestimonialForm testimonial={item} />
+                    </FormModal>
                     <ConfirmDeleteButton
                       action={deleteTestimonialAction}
                       id={item.id}
@@ -137,9 +187,6 @@ export default async function WebsiteCmsPage() {
                   </div>
                 }
               />
-              <CardBody>
-                <TestimonialForm testimonial={item} />
-              </CardBody>
             </Card>
           ))}
         </div>

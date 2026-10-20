@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getSessionContext } from '@/lib/auth';
 import { EnrollmentForm } from '@/components/dashboard/enrollment-form';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { Pagination } from '@/components/dashboard/pagination';
 import {
   Badge,
@@ -180,6 +181,23 @@ export default async function EnrollmentsPage({
       <PageHeader
         title="Enrollments"
         description="Enroll a student, then manage status, batch, fees and payments."
+        action={
+          <FormModal
+            title="Enroll a student"
+            description="A fee record is created automatically."
+            triggerLabel="Enroll student"
+            size="xl"
+          >
+            <EnrollmentForm
+              students={students.map((student) => ({
+                id: student.id,
+                label: student.full_name ?? student.email ?? student.id,
+              }))}
+              courses={courses}
+              batches={batches}
+            />
+          </FormModal>
+        }
       />
 
       {searchParams.error && errorMessages[searchParams.error] ? (
@@ -192,20 +210,6 @@ export default async function EnrollmentsPage({
           Student enrolled. A fee record was created.
         </div>
       ) : null}
-
-      <Card className="mb-6">
-        <CardHeader title="Enroll a student" description="A fee record is created automatically." />
-        <CardBody>
-          <EnrollmentForm
-            students={students.map((student) => ({
-              id: student.id,
-              label: student.full_name ?? student.email ?? student.id,
-            }))}
-            courses={courses}
-            batches={batches}
-          />
-        </CardBody>
-      </Card>
 
       <Card>
         <CardHeader

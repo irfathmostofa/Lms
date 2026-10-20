@@ -23,6 +23,7 @@ import {
   Th,
   Textarea,
 } from '@/components/ui';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { SubmitButton } from '@/components/dashboard/submit-button';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils';
 
@@ -144,7 +145,57 @@ export default async function EnrollmentDetailPage({ params }: { params: { id: s
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
           <Card>
-            <CardHeader title="Fee record" description="Discounts and installments are managed here." />
+            <CardHeader
+              title="Fee record"
+              description="Discounts and installments are managed here."
+              action={
+                fee ? (
+                  <FormModal title="Edit fee record" triggerLabel="Edit fee" triggerVariant="outline" triggerSize="sm">
+                    <form action={updateEnrollmentFeeAction} className="grid gap-3 sm:grid-cols-2">
+                      <input type="hidden" name="fee_id" value={fee.id} />
+                      <div className="sm:col-span-2">
+                        <Field label="Description">
+                          <Input name="description" defaultValue={fee.description ?? ''} />
+                        </Field>
+                      </div>
+                      <Field label="Total fee (BDT)">
+                        <Input
+                          name="total_amount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          defaultValue={fee.total_amount}
+                          required
+                        />
+                      </Field>
+                      <Field label="Discount (BDT)">
+                        <Input
+                          name="discount_amount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          defaultValue={fee.discount_amount}
+                        />
+                      </Field>
+                      <Field label="Installments">
+                        <Input
+                          name="installments"
+                          type="number"
+                          min="1"
+                          defaultValue={fee.installments}
+                        />
+                      </Field>
+                      <Field label="Due date">
+                        <Input name="due_date" type="date" defaultValue={fee.due_date ?? ''} />
+                      </Field>
+                      <div className="sm:col-span-2">
+                        <SubmitButton pendingLabel="Saving...">Save fee record</SubmitButton>
+                      </div>
+                    </form>
+                  </FormModal>
+                ) : null
+              }
+            />
             <CardBody>
               {fee ? (
                 <>
@@ -182,48 +233,6 @@ export default async function EnrollmentDetailPage({ params }: { params: { id: s
                       </dd>
                     </div>
                   </dl>
-
-                  <form action={updateEnrollmentFeeAction} className="grid gap-3 sm:grid-cols-2">
-                    <input type="hidden" name="fee_id" value={fee.id} />
-                    <div className="sm:col-span-2">
-                      <Field label="Description">
-                        <Input name="description" defaultValue={fee.description ?? ''} />
-                      </Field>
-                    </div>
-                    <Field label="Total fee (BDT)">
-                      <Input
-                        name="total_amount"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        defaultValue={fee.total_amount}
-                        required
-                      />
-                    </Field>
-                    <Field label="Discount (BDT)">
-                      <Input
-                        name="discount_amount"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        defaultValue={fee.discount_amount}
-                      />
-                    </Field>
-                    <Field label="Installments">
-                      <Input
-                        name="installments"
-                        type="number"
-                        min="1"
-                        defaultValue={fee.installments}
-                      />
-                    </Field>
-                    <Field label="Due date">
-                      <Input name="due_date" type="date" defaultValue={fee.due_date ?? ''} />
-                    </Field>
-                    <div className="sm:col-span-2">
-                      <SubmitButton pendingLabel="Saving...">Save fee record</SubmitButton>
-                    </div>
-                  </form>
                 </>
               ) : (
                 <EmptyState
@@ -318,24 +327,32 @@ export default async function EnrollmentDetailPage({ params }: { params: { id: s
           </Card>
 
           <Card>
-            <CardHeader title="Batch" description="Offline and hybrid courses only." />
+            <CardHeader
+              title="Batch"
+              description="Offline and hybrid courses only."
+              action={
+                <FormModal title="Assign batch" triggerLabel="Edit batch" triggerVariant="outline" triggerSize="sm">
+                  <form action={updateEnrollmentBatchAction} className="space-y-3">
+                    <input type="hidden" name="id" value={enrollment.id} />
+                    <Field label="Assigned batch">
+                      <Select name="batch_id" defaultValue={enrollment.batch_id ?? ''}>
+                        <option value="">No batch</option>
+                        {batches.map((batch) => (
+                          <option key={batch.id} value={batch.id}>
+                            {batch.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                    <SubmitButton className="w-full" variant="secondary" pendingLabel="Updating...">
+                      Update batch
+                    </SubmitButton>
+                  </form>
+                </FormModal>
+              }
+            />
             <CardBody>
-              <form action={updateEnrollmentBatchAction} className="space-y-3">
-                <input type="hidden" name="id" value={enrollment.id} />
-                <Field label="Assigned batch">
-                  <Select name="batch_id" defaultValue={enrollment.batch_id ?? ''}>
-                    <option value="">No batch</option>
-                    {batches.map((batch) => (
-                      <option key={batch.id} value={batch.id}>
-                        {batch.name}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <SubmitButton className="w-full" variant="secondary" pendingLabel="Updating...">
-                  Update batch
-                </SubmitButton>
-              </form>
+              <p className="text-sm text-slate-800">{enrollment.batches?.name ?? 'No batch assigned'}</p>
             </CardBody>
           </Card>
 

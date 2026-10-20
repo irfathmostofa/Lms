@@ -17,6 +17,7 @@ import {
   Td,
   Th,
 } from '@/components/ui';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { SubmitButton } from '@/components/dashboard/submit-button';
 import { formatDate } from '@/lib/utils';
 
@@ -70,45 +71,47 @@ export default async function BatchAttendancePage({ params }: { params: { batchI
         title={batch.name}
         description={`${courseInfo?.title ?? 'Course'} · ${studentCount} enrolled · mark attendance by class session.`}
         action={
-          <ButtonLink href="/dashboard/attendance" size="sm" variant="secondary">
-            All batches
-          </ButtonLink>
+          <div className="flex flex-wrap items-center gap-2">
+            <FormModal
+              title="New class session"
+              description="Create a date, then mark the roster."
+              triggerLabel="Add session"
+              triggerSize="sm"
+            >
+              <form action={createSessionAction} className="grid gap-3 sm:grid-cols-2">
+                <input type="hidden" name="batch_id" value={params.batchId} />
+                <Field label="Title">
+                  <Input name="title" placeholder="e.g. Chapter 3" />
+                </Field>
+                <Field label="Date">
+                  <Input name="session_date" type="date" required />
+                </Field>
+                <Field label="Start time">
+                  <Input name="start_time" type="time" />
+                </Field>
+                <Field label="End time">
+                  <Input name="end_time" type="time" />
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Venue">
+                    <Input name="venue" defaultValue={batch.venue ?? ''} />
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <SubmitButton pendingLabel="Scheduling...">Add session</SubmitButton>
+                </div>
+              </form>
+            </FormModal>
+            <ButtonLink href="/dashboard/attendance" size="sm" variant="secondary">
+              All batches
+            </ButtonLink>
+          </div>
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader title="New class session" description="Create a date, then mark the roster." />
-          <CardBody>
-            <form action={createSessionAction} className="grid gap-3 sm:grid-cols-2">
-              <input type="hidden" name="batch_id" value={params.batchId} />
-              <Field label="Title">
-                <Input name="title" placeholder="e.g. Chapter 3" />
-              </Field>
-              <Field label="Date">
-                <Input name="session_date" type="date" required />
-              </Field>
-              <Field label="Start time">
-                <Input name="start_time" type="time" />
-              </Field>
-              <Field label="End time">
-                <Input name="end_time" type="time" />
-              </Field>
-              <div className="sm:col-span-2">
-                <Field label="Venue">
-                  <Input name="venue" defaultValue={batch.venue ?? ''} />
-                </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <SubmitButton pendingLabel="Scheduling...">Add session</SubmitButton>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader title="Class sessions" description={`${sessions.length} sessions`} />
-          <CardBody className="p-0">
+      <Card>
+        <CardHeader title="Class sessions" description={`${sessions.length} sessions`} />
+        <CardBody className="p-0">
             {sessions.length === 0 ? (
               <div className="p-5">
                 <EmptyState title="No sessions yet" description="Add a class date to take attendance." />
@@ -147,7 +150,6 @@ export default async function BatchAttendancePage({ params }: { params: { batchI
             )}
           </CardBody>
         </Card>
-      </div>
       <p className="mt-4 text-sm text-slate-500">
         <Link href="/dashboard/attendance" className="font-medium text-brand-600 hover:underline">
           Back to attendance

@@ -5,6 +5,7 @@ import { getSessionContext } from '@/lib/auth';
 import { AboutPageForm } from '@/components/dashboard/about-page-form';
 import { TeamMemberForm } from '@/components/dashboard/team-member-form';
 import { ConfirmDeleteButton } from '@/components/dashboard/confirm-delete-button';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { deleteTeamMemberAction } from '@/actions/dashboard';
 import { Badge, Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui';
 import type { AboutPage, TeamMember } from '@/lib/types';
@@ -29,6 +30,16 @@ export default async function AboutCmsPage() {
       <PageHeader
         title="About page"
         description="Intro, mission, vision and the people who teach. Images are compressed to 75% quality before upload."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <FormModal title="Intro, mission and vision" description="Use an image, a Lottie URL, or both." triggerLabel="Edit about" size="xl">
+              <AboutPageForm about={about} />
+            </FormModal>
+            <FormModal title="Add team member" description="Instructors and staff shown on the About page." triggerLabel="Add team member" triggerVariant="secondary">
+              <TeamMemberForm />
+            </FormModal>
+          </div>
+        }
       />
 
       {aboutError || teamError ? (
@@ -37,22 +48,8 @@ export default async function AboutCmsPage() {
         </p>
       ) : null}
 
-      <Card className="mb-8">
-        <CardHeader title="Intro, mission and vision" description="Use an image, a Lottie URL, or both." />
-        <CardBody>
-          <AboutPageForm about={about} />
-        </CardBody>
-      </Card>
-
-      <Card className="mb-6">
-        <CardHeader title="Add team member" description="Instructors and staff shown on the About page." />
-        <CardBody>
-          <TeamMemberForm />
-        </CardBody>
-      </Card>
-
       {members.length === 0 ? (
-        <EmptyState title="No team members yet" description="Add instructors and staff above." />
+        <EmptyState title="No team members yet" description="Add instructors and staff." />
       ) : (
         <div className="space-y-4">
           {members.map((member) => (
@@ -65,6 +62,9 @@ export default async function AboutCmsPage() {
                     <Badge tone={member.is_active ? 'green' : 'amber'}>
                       {member.is_active ? 'published' : 'hidden'}
                     </Badge>
+                    <FormModal title="Edit team member" triggerLabel="Edit" triggerVariant="outline" triggerSize="sm">
+                      <TeamMemberForm member={member} />
+                    </FormModal>
                     <ConfirmDeleteButton
                       action={deleteTeamMemberAction}
                       id={member.id}
@@ -73,15 +73,14 @@ export default async function AboutCmsPage() {
                   </div>
                 }
               />
-              <CardBody className="grid gap-6 lg:grid-cols-[160px_1fr]">
-                <div className="relative aspect-square overflow-hidden rounded-lg bg-slate-100">
+              <CardBody>
+                <div className="relative aspect-square max-w-[160px] overflow-hidden rounded-lg bg-slate-100">
                   {member.image_url ? (
                     <Image src={member.image_url} alt={member.name} fill className="object-cover" sizes="160px" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs text-slate-400">No photo</div>
                   )}
                 </div>
-                <TeamMemberForm member={member} />
               </CardBody>
             </Card>
           ))}

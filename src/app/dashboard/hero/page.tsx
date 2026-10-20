@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getSessionContext } from '@/lib/auth';
 import { HeroSlideForm } from '@/components/dashboard/hero-slide-form';
 import { DeleteHeroSlideButton } from '@/components/dashboard/delete-hero-slide-button';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { Badge, Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui';
 import type { HeroSlide } from '@/lib/types';
 
@@ -27,6 +28,16 @@ export default async function HeroSlidesPage() {
       <PageHeader
         title="Hero slider"
         description="Upload homepage slider images. Files are compressed to 75% quality before they are saved."
+        action={
+          <FormModal
+            title="Add slide"
+            description="Wide images (about 1920x1080) work best."
+            triggerLabel="Add slide"
+            size="lg"
+          >
+            <HeroSlideForm />
+          </FormModal>
+        }
       />
 
       {error ? (
@@ -35,15 +46,8 @@ export default async function HeroSlidesPage() {
         </p>
       ) : null}
 
-      <Card className="mb-6">
-        <CardHeader title="Add slide" description="Wide images (about 1920x1080) work best." />
-        <CardBody>
-          <HeroSlideForm />
-        </CardBody>
-      </Card>
-
       {slides.length === 0 ? (
-        <EmptyState title="No slider images yet" description="Add a slide above. Until then the homepage uses the default hero." />
+        <EmptyState title="No slider images yet" description="Add a slide. Until then the homepage uses the default hero." />
       ) : (
         <div className="space-y-4">
           {slides.map((slide) => (
@@ -56,15 +60,17 @@ export default async function HeroSlidesPage() {
                     <Badge tone={slide.is_active ? 'green' : 'amber'}>
                       {slide.is_active ? 'published' : 'hidden'}
                     </Badge>
+                    <FormModal title="Edit slide" triggerLabel="Edit" triggerVariant="outline" triggerSize="sm">
+                      <HeroSlideForm slide={slide} />
+                    </FormModal>
                     <DeleteHeroSlideButton id={slide.id} />
                   </div>
                 }
               />
-              <CardBody className="grid gap-6 lg:grid-cols-[220px_1fr]">
-                <div className="relative aspect-video overflow-hidden rounded-lg bg-slate-100">
+              <CardBody>
+                <div className="relative aspect-video max-w-sm overflow-hidden rounded-lg bg-slate-100">
                   <Image src={slide.image_url} alt={slide.title} fill className="object-cover" sizes="220px" />
                 </div>
-                <HeroSlideForm slide={slide} />
               </CardBody>
             </Card>
           ))}

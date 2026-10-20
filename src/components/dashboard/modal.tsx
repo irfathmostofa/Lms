@@ -2,17 +2,25 @@
 
 import { useEffect, type ReactNode } from 'react';
 
+const modalSizes = {
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
+};
+
 export function Modal({
   open,
   title,
   description,
   onClose,
+  size = 'md',
   children,
 }: {
   open: boolean;
   title: string;
   description?: string;
   onClose: () => void;
+  size?: keyof typeof modalSizes;
   children: ReactNode;
 }) {
   useEffect(() => {
@@ -33,7 +41,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className="relative z-10 w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-xl"
+        className={`relative z-10 w-full ${modalSizes[size]} max-h-[90vh] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl`}
       >
         <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
           <div>

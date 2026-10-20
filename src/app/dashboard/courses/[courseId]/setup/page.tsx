@@ -22,6 +22,7 @@ import {
   Select,
   Textarea,
 } from '@/components/ui';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { SubmitButton } from '@/components/dashboard/submit-button';
 import { CourseBasicForm } from '@/components/dashboard/course-basic-form';
 import { CourseSetupSteps, type CourseSetupStep } from '@/components/dashboard/course-setup-steps';
@@ -132,18 +133,44 @@ export default async function CourseSetupPage({
           <CardHeader
             title="Step 1 - Basic setup"
             description="Title, description, access, featured image, video, pricing, category, tags and author."
+            action={
+              <FormModal title="Edit basic setup" triggerLabel="Edit details" size="xl">
+                <CourseBasicForm
+                  course={course}
+                  hasPassword={Boolean(accessRes.data)}
+                  categories={categories.map((category) => ({ id: category.id, name: category.name }))}
+                  authors={authors.map((author) => ({
+                    id: author.id,
+                    name: author.full_name ?? author.email ?? 'Unnamed',
+                  }))}
+                  currentUserId={ctx?.userId ?? ''}
+                />
+              </FormModal>
+            }
           />
-          <CardBody>
-            <CourseBasicForm
-              course={course}
-              hasPassword={Boolean(accessRes.data)}
-              categories={categories.map((category) => ({ id: category.id, name: category.name }))}
-              authors={authors.map((author) => ({
-                id: author.id,
-                name: author.full_name ?? author.email ?? 'Unnamed',
-              }))}
-              currentUserId={ctx?.userId ?? ''}
-            />
+          <CardBody className="space-y-4 text-sm text-slate-600">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Title</p>
+                <p className="mt-1 text-slate-800">{course.title}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Slug</p>
+                <p className="mt-1 text-slate-800">{course.slug}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Summary</p>
+                <p className="mt-1 text-slate-800">{course.summary || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Visibility</p>
+                <p className="mt-1 capitalize text-slate-800">{course.visibility}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Price</p>
+                <p className="mt-1 text-slate-800">{Number(course.price) > 0 ? course.price : 'Free'}</p>
+              </div>
+            </div>
           </CardBody>
         </Card>
       ) : null}
@@ -157,55 +184,77 @@ export default async function CourseSetupPage({
           <CardHeader
             title="Step 3 - Additional information"
             description="Optional details that help students decide whether the course is right for them."
+            action={
+              <FormModal title="Edit additional information" triggerLabel="Edit details" size="xl">
+                <form action={updateCourseAdditionalAction} className="space-y-4">
+                  <input type="hidden" name="id" value={course.id} />
+                  <Field
+                    label="What will I learn?"
+                    hint="Add one outcome per line. Shown as a checklist on the course page."
+                  >
+                    <Textarea
+                      name="learning_outcomes"
+                      defaultValue={course.learning_outcomes ?? ''}
+                      className="min-h-28"
+                      placeholder={'Build responsive pages\nStyle layouts with modern CSS'}
+                    />
+                  </Field>
+                  <Field label="Target audience">
+                    <Textarea
+                      name="target_audience"
+                      defaultValue={course.target_audience ?? ''}
+                      placeholder="Beginners, career switchers, and anyone who wants to learn web development."
+                    />
+                  </Field>
+                  <Field label="Course duration" hint="For example: 6 weeks, 12 hours, or self-paced.">
+                    <Input name="duration_label" defaultValue={course.duration_label ?? ''} />
+                  </Field>
+                  <Field label="Materials included" hint="One item per line.">
+                    <Textarea
+                      name="materials_included"
+                      defaultValue={course.materials_included ?? ''}
+                      placeholder={'Downloadable slides\nPractice files\nCertificate of completion'}
+                    />
+                  </Field>
+                  <Field label="Requirements / instructions" hint="One requirement per line.">
+                    <Textarea
+                      name="requirements"
+                      defaultValue={course.requirements ?? ''}
+                      placeholder={'A computer with internet access\nNo prior experience needed'}
+                    />
+                  </Field>
+                  <SubmitButton pendingLabel="Saving...">Save additional information</SubmitButton>
+                </form>
+              </FormModal>
+            }
           />
-          <CardBody>
-            <form action={updateCourseAdditionalAction} className="space-y-4">
-              <input type="hidden" name="id" value={course.id} />
-              <Field
-                label="What will I learn?"
-                hint="Add one outcome per line. Shown as a checklist on the course page."
-              >
-                <Textarea
-                  name="learning_outcomes"
-                  defaultValue={course.learning_outcomes ?? ''}
-                  className="min-h-28"
-                  placeholder={'Build responsive pages\nStyle layouts with modern CSS'}
-                />
-              </Field>
-              <Field label="Target audience">
-                <Textarea
-                  name="target_audience"
-                  defaultValue={course.target_audience ?? ''}
-                  placeholder="Beginners, career switchers, and anyone who wants to learn web development."
-                />
-              </Field>
-              <Field label="Course duration" hint="For example: 6 weeks, 12 hours, or self-paced.">
-                <Input name="duration_label" defaultValue={course.duration_label ?? ''} />
-              </Field>
-              <Field label="Materials included" hint="One item per line.">
-                <Textarea
-                  name="materials_included"
-                  defaultValue={course.materials_included ?? ''}
-                  placeholder={'Downloadable slides\nPractice files\nCertificate of completion'}
-                />
-              </Field>
-              <Field label="Requirements / instructions" hint="One requirement per line.">
-                <Textarea
-                  name="requirements"
-                  defaultValue={course.requirements ?? ''}
-                  placeholder={'A computer with internet access\nNo prior experience needed'}
-                />
-              </Field>
-              <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-5">
-                <SubmitButton pendingLabel="Saving...">Save additional information</SubmitButton>
-                <Link
-                  href={`/dashboard/courses/${course.id}/setup?step=basic`}
-                  className="text-sm font-medium text-brand-600 hover:underline"
-                >
-                  Back to basic setup
-                </Link>
-              </div>
-            </form>
+          <CardBody className="space-y-4 text-sm text-slate-600">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">What will I learn?</p>
+              <p className="mt-1 whitespace-pre-wrap text-slate-800">{course.learning_outcomes || '-'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Target audience</p>
+              <p className="mt-1 whitespace-pre-wrap text-slate-800">{course.target_audience || '-'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Duration</p>
+              <p className="mt-1 text-slate-800">{course.duration_label || '-'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Materials included</p>
+              <p className="mt-1 whitespace-pre-wrap text-slate-800">{course.materials_included || '-'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Requirements</p>
+              <p className="mt-1 whitespace-pre-wrap text-slate-800">{course.requirements || '-'}</p>
+            </div>
+            <Link
+              href={`/dashboard/courses/${course.id}/setup?step=basic`}
+              className="inline-block text-sm font-medium text-brand-600 hover:underline"
+            >
+              Back to basic setup
+            </Link>
           </CardBody>
         </Card>
       ) : null}
@@ -238,31 +287,35 @@ async function CurriculumStep({ course }: { course: Course }) {
           description="Add topics (sections), then add lessons, quizzes and assignments inside each topic."
         />
         <CardBody>
-          <form action={createSectionAction} className="grid gap-3 sm:grid-cols-4">
-            <input type="hidden" name="course_id" value={course.id} />
-            <Field label="Topic title">
-              <Input name="title" required placeholder="e.g. Getting started" />
-            </Field>
-            <Field label="Sort order">
-              <Input name="sort_order" type="number" defaultValue={sections.length} />
-            </Field>
-            <Field label="Free preview">
-              <Select name="is_free" defaultValue="off">
-                <option value="off">No</option>
-                <option value="on">Yes</option>
-              </Select>
-            </Field>
-            <div className="flex items-end">
-              <SubmitButton pendingLabel="Adding...">Add topic</SubmitButton>
-            </div>
-          </form>
+          <FormModal title="Add topic" description="Create a section, then add lessons, quizzes and assignments inside it." triggerLabel="Add topic">
+            <form action={createSectionAction} className="grid gap-3 sm:grid-cols-2">
+              <input type="hidden" name="course_id" value={course.id} />
+              <div className="sm:col-span-2">
+                <Field label="Topic title">
+                  <Input name="title" required placeholder="e.g. Getting started" />
+                </Field>
+              </div>
+              <Field label="Sort order">
+                <Input name="sort_order" type="number" defaultValue={sections.length} />
+              </Field>
+              <Field label="Free preview">
+                <Select name="is_free" defaultValue="off">
+                  <option value="off">No</option>
+                  <option value="on">Yes</option>
+                </Select>
+              </Field>
+              <div className="sm:col-span-2">
+                <SubmitButton pendingLabel="Adding...">Add topic</SubmitButton>
+              </div>
+            </form>
+          </FormModal>
         </CardBody>
       </Card>
 
       {sections.length === 0 ? (
         <EmptyState
           title="No topics yet"
-          description="Add your first topic above, then add lessons, quizzes and assignments."
+          description="Use Add topic to create your first section, then add lessons, quizzes and assignments."
         />
       ) : (
         sections.map((section) => {
@@ -362,11 +415,19 @@ async function CurriculumStep({ course }: { course: Course }) {
                   ) : null}
                 </ul>
 
-                <CurriculumItemForm
-                  courseId={course.id}
-                  sectionId={section.id}
-                  nextSortOrder={entries.length}
-                />
+                <FormModal
+                  title={`Add item to ${section.title}`}
+                  triggerLabel="Add item"
+                  triggerVariant="secondary"
+                  triggerSize="sm"
+                  size="xl"
+                >
+                  <CurriculumItemForm
+                    courseId={course.id}
+                    sectionId={section.id}
+                    nextSortOrder={entries.length}
+                  />
+                </FormModal>
               </CardBody>
             </Card>
           );

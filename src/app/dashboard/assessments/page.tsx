@@ -15,6 +15,7 @@ import {
   Td,
   Th,
 } from '@/components/ui';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { assessmentTypeConfig } from '@/lib/assessments';
 import { formatDateTime } from '@/lib/utils';
 import type { Assessment } from '@/lib/types';
@@ -58,6 +59,16 @@ export default async function AssessmentsPage() {
       <PageHeader
         title="Assessments"
         description="Assign homework, class tests, assignments, exams and quizzes to a course or batch."
+        action={
+          <FormModal
+            title="Create assessment"
+            description="The form changes with the type you choose."
+            triggerLabel="Create assessment"
+            size="xl"
+          >
+            <AssessmentCreateForm courses={courses} batches={batches} />
+          </FormModal>
+        }
       />
 
       {fetchError ? (
@@ -65,13 +76,6 @@ export default async function AssessmentsPage() {
           Assessments could not be loaded: {fetchError}
         </p>
       ) : null}
-
-      <Card className="mb-6">
-        <CardHeader title="Create assessment" description="The form changes with the type you choose." />
-        <CardBody>
-          <AssessmentCreateForm courses={courses} batches={batches} />
-        </CardBody>
-      </Card>
 
       <Card>
         <CardHeader title="All assessments" description={`${assessments.length} items`} />

@@ -16,6 +16,7 @@ import {
   Td,
   Th,
 } from '@/components/ui';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { SubmitButton } from '@/components/dashboard/submit-button';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
@@ -72,6 +73,101 @@ export default async function FinancePage() {
       <PageHeader
         title="Finance"
         description="Income and expenses, monthly profit/loss from the finance_monthly_pnl function."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <FormModal title="Record expense" triggerLabel="Add expense">
+              <form action={createExpenseAction} className="grid gap-3 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Field label="Title">
+                    <Input name="title" required />
+                  </Field>
+                </div>
+                <Field label="Amount">
+                  <Input name="amount" type="number" min="0" step="0.01" required />
+                </Field>
+                <Field label="Date">
+                  <Input name="expense_date" type="date" />
+                </Field>
+                <Field label="Category">
+                  <Select name="category_id" defaultValue="">
+                    <option value="">Uncategorized</option>
+                    {categories
+                      .filter((category) => category.kind === 'expense')
+                      .map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </Select>
+                </Field>
+                <Field label="Course (optional)">
+                  <Select name="course_id" defaultValue="">
+                    <option value="">General</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Paid to">
+                  <Input name="paid_to" />
+                </Field>
+                <Field label="Method">
+                  <Input name="method" />
+                </Field>
+                <div className="sm:col-span-2">
+                  <SubmitButton pendingLabel="Saving...">Add expense</SubmitButton>
+                </div>
+              </form>
+            </FormModal>
+            <FormModal title="Record manual income" triggerLabel="Add income" triggerVariant="secondary">
+              <form action={createManualIncomeAction} className="grid gap-3 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Field label="Title">
+                    <Input name="title" required />
+                  </Field>
+                </div>
+                <Field label="Amount">
+                  <Input name="amount" type="number" min="0" step="0.01" required />
+                </Field>
+                <Field label="Date">
+                  <Input name="income_date" type="date" />
+                </Field>
+                <Field label="Category">
+                  <Select name="category_id" defaultValue="">
+                    <option value="">Uncategorized</option>
+                    {categories
+                      .filter((category) => category.kind === 'income')
+                      .map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </Select>
+                </Field>
+                <Field label="Course (optional)">
+                  <Select name="course_id" defaultValue="">
+                    <option value="">General</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Source">
+                    <Input name="source" placeholder="e.g. Admission desk" />
+                  </Field>
+                </div>
+                <div className="sm:col-span-2">
+                  <SubmitButton pendingLabel="Saving...">Add income</SubmitButton>
+                </div>
+              </form>
+            </FormModal>
+          </div>
+        }
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -122,107 +218,6 @@ export default async function FinancePage() {
           )}
         </CardBody>
       </Card>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader title="Record expense" />
-          <CardBody>
-            <form action={createExpenseAction} className="grid gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <Field label="Title">
-                  <Input name="title" required />
-                </Field>
-              </div>
-              <Field label="Amount">
-                <Input name="amount" type="number" min="0" step="0.01" required />
-              </Field>
-              <Field label="Date">
-                <Input name="expense_date" type="date" />
-              </Field>
-              <Field label="Category">
-                <Select name="category_id" defaultValue="">
-                  <option value="">Uncategorized</option>
-                  {categories
-                    .filter((category) => category.kind === 'expense')
-                    .map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                </Select>
-              </Field>
-              <Field label="Course (optional)">
-                <Select name="course_id" defaultValue="">
-                  <option value="">General</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.title}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Paid to">
-                <Input name="paid_to" />
-              </Field>
-              <Field label="Method">
-                <Input name="method" />
-              </Field>
-              <div className="sm:col-span-2">
-                <SubmitButton pendingLabel="Saving...">Add expense</SubmitButton>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader title="Record manual income" />
-          <CardBody>
-            <form action={createManualIncomeAction} className="grid gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <Field label="Title">
-                  <Input name="title" required />
-                </Field>
-              </div>
-              <Field label="Amount">
-                <Input name="amount" type="number" min="0" step="0.01" required />
-              </Field>
-              <Field label="Date">
-                <Input name="income_date" type="date" />
-              </Field>
-              <Field label="Category">
-                <Select name="category_id" defaultValue="">
-                  <option value="">Uncategorized</option>
-                  {categories
-                    .filter((category) => category.kind === 'income')
-                    .map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                </Select>
-              </Field>
-              <Field label="Course (optional)">
-                <Select name="course_id" defaultValue="">
-                  <option value="">General</option>
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
-                      {course.title}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <div className="sm:col-span-2">
-                <Field label="Source">
-                  <Input name="source" placeholder="e.g. Admission desk" />
-                </Field>
-              </div>
-              <div className="sm:col-span-2">
-                <SubmitButton pendingLabel="Saving...">Add income</SubmitButton>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
-      </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card>

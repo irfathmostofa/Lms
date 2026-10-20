@@ -17,6 +17,7 @@ import {
   Td,
   Th,
 } from '@/components/ui';
+import { FormModal } from '@/components/dashboard/form-modal';
 import { SubmitButton } from '@/components/dashboard/submit-button';
 
 export const dynamic = 'force-dynamic';
@@ -74,13 +75,10 @@ export default async function BatchesPage() {
       <PageHeader
         title="Batches"
         description="Offline and hybrid batches with venue, schedule and class sessions."
-      />
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader title="Create batch" />
-          <CardBody>
-            <form action={createBatchAction} className="grid gap-3 sm:grid-cols-2">
+        action={
+          <div className="flex flex-wrap gap-2">
+            <FormModal title="Create batch" triggerLabel="Create batch">
+              <form action={createBatchAction} className="grid gap-3 sm:grid-cols-2">
               <Field label="Course">
                 <Select name="course_id" required defaultValue="">
                   <option value="">Select course</option>
@@ -123,12 +121,8 @@ export default async function BatchesPage() {
                 <SubmitButton pendingLabel="Creating...">Create batch</SubmitButton>
               </div>
             </form>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader title="Schedule a class session" description="Pick a batch and a date." />
-          <CardBody>
+            </FormModal>
+            <FormModal title="Schedule a class session" description="Pick a batch and a date." triggerLabel="Add session" triggerVariant="secondary">
             <form action={createSessionAction} className="grid gap-3 sm:grid-cols-2">
               <Field label="Batch">
                 <Select name="batch_id" required defaultValue="">
@@ -159,11 +153,12 @@ export default async function BatchesPage() {
                 <SubmitButton pendingLabel="Scheduling...">Add session</SubmitButton>
               </div>
             </form>
-          </CardBody>
-        </Card>
-      </div>
+            </FormModal>
+          </div>
+        }
+      />
 
-      <Card className="mt-6">
+      <Card>
         <CardHeader title="All batches" description={`${batches.length} batches`} />
         <CardBody className="p-0">
           {batches.length === 0 ? (
