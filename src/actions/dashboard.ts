@@ -10,6 +10,7 @@ import { fromDateTimeLocal, slugify, youtubeIdFromInput } from '@/lib/utils';
 import { assessmentTypeConfig, resolveDelivery } from '@/lib/assessments';
 import { parseQuizQuestions, quizQuestionRows, quizTotalMarks } from '@/lib/quiz';
 import { MAX_IMAGE_BYTES } from '@/lib/image';
+import { findRoomConflict, normalizeTime, type RoomBooking } from '@/lib/rooms';
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -499,6 +500,21 @@ export async function updateEnrollmentBatchAction(formData: FormData) {
   revalidatePath('/dashboard/enrollments');
 }
 
+async function roomDetails(supabase: ReturnType<typeof createClient>, roomId: string | null) {
+  if (!roomId) return null;
+  const { data } = await supabase
+    .from('rooms')
+    .select('id, name, location, is_active')
+    .eq('id', roomId)
+    .maybeSingle();
+  return data as { id: string; name: string; location: string | null; is_active: boolean } | null;
+}
+
+function roomVenue(room: { name: string; location: string | null } | null) {
+  if (!room) return null;
+  return [room.name, room.location].filter(Boolean).join(' · ');
+}
+
 export async function createBatchAction(formData: FormData) {
   await requireRole(['admin', 'instructor']);
   const supabase = createClient();
@@ -506,10 +522,14 @@ export async function createBatchAction(formData: FormData) {
   const name = str(formData, 'name');
   if (!courseId || !name) return;
 
+  const roomId = optional(formData, 'room_id');
+  const room = await roomDetails(supabase, roomId);
+
   await supabase.from('batches').insert({
     course_id: courseId,
     name,
-    venue: optional(formData, 'venue'),
+    room_id: room?.id ?? null,
+    venue: roomVenue(room) ?? optional(formData, 'venue'),
     schedule: optional(formData, 'schedule'),
     start_date: optional(formData, 'start_date'),
     end_date: optional(formData, 'end_date'),
@@ -520,28 +540,73 @@ export async function createBatchAction(formData: FormData) {
   revalidatePath('/dashboard/batches');
 }
 
-export async function createSessionAction(formData: FormData) {
+export async function createSessionAction(_prev: unknown, formData: FormData) {
   const ctx = await requireRole(['admin', 'instructor']);
   const supabase = createClient();
   const batchId = str(formData, 'batch_id');
   const sessionDate = str(formData, 'session_date');
-  if (!batchId || !sessionDate) return;
+  if (!batchId || !sessionDate) return { error: 'Pick a batch and date.' };
 
-  await supabase.from('class_sessions').insert({
+  const startTime = normalizeTime(optional(formData, 'start_time'));
+  const endTime = normalizeTime(optional(formData, 'end_time'));
+  if ((startTime && !endTime) || (!startTime && endTime)) {
+    return { error: 'Enter both start and end time.' };
+  }
+  if (startTime && endTime && startTime >= endTime) {
+    return { error: 'End time must be after start time.' };
+  }
+
+  const roomId = optional(formData, 'room_id');
+  const room = await roomDetails(supabase, roomId);
+  if (roomId && !room) return { error: 'Choose a valid classroom.' };
+  if (room && !room.is_active) return { error: 'That classroom is inactive.' };
+  if (room && (!startTime || !endTime)) {
+    return { error: 'Enter start and end time to book a classroom.' };
+  }
+
+  if (room && startTime && endTime) {
+    const { data } = await supabase
+      .from('class_sessions')
+      .select('id, room_id, session_date, start_time, end_time, status, title')
+      .eq('room_id', room.id)
+      .eq('session_date', sessionDate)
+      .neq('status', 'cancelled');
+    const conflict = findRoomConflict(
+      (data as RoomBooking[]) ?? [],
+      room.id,
+      sessionDate,
+      startTime,
+      endTime,
+    );
+    if (conflict) {
+      const when = [normalizeTime(conflict.start_time), normalizeTime(conflict.end_time)]
+        .filter(Boolean)
+        .join('–');
+      return {
+        error: `${room.name} is already booked${when ? ` ${when}` : ''}${conflict.title ? ` (${conflict.title})` : ''}.`,
+      };
+    }
+  }
+
+  const { error } = await supabase.from('class_sessions').insert({
     batch_id: batchId,
     title: optional(formData, 'title'),
     session_date: sessionDate,
-    start_time: optional(formData, 'start_time'),
-    end_time: optional(formData, 'end_time'),
-    venue: optional(formData, 'venue'),
+    start_time: startTime,
+    end_time: endTime,
+    room_id: room?.id ?? null,
+    venue: roomVenue(room) ?? optional(formData, 'venue'),
     notes: optional(formData, 'notes'),
     status: 'scheduled',
     created_by: ctx.userId,
   });
+  if (error) return { error: error.message };
 
   revalidatePath('/dashboard/batches');
   revalidatePath('/dashboard/attendance');
   revalidatePath(`/dashboard/attendance/${batchId}`);
+  revalidatePath('/dashboard/settings');
+  return { success: 'Class session scheduled.' };
 }
 
 export async function markAttendanceAction(formData: FormData) {
@@ -1361,6 +1426,70 @@ export async function deleteCategoryAction(_prev: unknown, formData: FormData) {
   revalidateSettings();
   revalidateTag(CACHE_TAGS.website);
   return { success: 'Category deleted.' };
+}
+
+function revalidateRooms() {
+  revalidatePath('/dashboard/settings');
+  revalidatePath('/dashboard/batches');
+  revalidatePath('/dashboard/attendance');
+}
+
+export async function createRoomAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const name = str(formData, 'name');
+  const code = str(formData, 'code') || slugify(name);
+  if (!name) return { error: 'Enter a room name.' };
+  if (!code) return { error: 'Enter a room code.' };
+  const { error } = await supabase.from('rooms').insert({
+    name,
+    code,
+    capacity: str(formData, 'capacity') ? num(formData, 'capacity') : null,
+    location: optional(formData, 'location'),
+    notes: optional(formData, 'notes'),
+    sort_order: num(formData, 'sort_order'),
+    is_active: boolFromForm(formData, 'is_active'),
+  });
+  if (error) return { error: error.message };
+  revalidateRooms();
+  return { success: 'Classroom added.' };
+}
+
+export async function updateRoomAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  const name = str(formData, 'name');
+  const code = str(formData, 'code') || slugify(name);
+  if (!id) return { error: 'Missing classroom.' };
+  if (!name) return { error: 'Enter a room name.' };
+  if (!code) return { error: 'Enter a room code.' };
+  const { error } = await supabase
+    .from('rooms')
+    .update({
+      name,
+      code,
+      capacity: str(formData, 'capacity') ? num(formData, 'capacity') : null,
+      location: optional(formData, 'location'),
+      notes: optional(formData, 'notes'),
+      sort_order: num(formData, 'sort_order'),
+      is_active: boolFromForm(formData, 'is_active'),
+    })
+    .eq('id', id);
+  if (error) return { error: error.message };
+  revalidateRooms();
+  return { success: 'Classroom saved.' };
+}
+
+export async function deleteRoomAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  if (!id) return { error: 'Missing classroom.' };
+  const { error } = await supabase.from('rooms').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidateRooms();
+  return { success: 'Classroom deleted.' };
 }
 
 function revalidateHero() {

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getSessionContext } from '@/lib/auth';
 import { AttendanceSheet, type AttendanceStudent } from '@/components/dashboard/attendance-sheet';
 import { ButtonLink, Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui';
+import { formatClock } from '@/lib/rooms';
 import { formatDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,7 @@ export default async function SessionAttendancePage({
   const [{ data: session }, { data: batch }] = await Promise.all([
     supabase
       .from('class_sessions')
-      .select('id, batch_id, title, session_date, venue, status')
+      .select('id, batch_id, title, session_date, start_time, end_time, venue, status, rooms(name)')
       .eq('id', params.sessionId)
       .eq('batch_id', params.batchId)
       .maybeSingle(),
@@ -76,12 +77,24 @@ export default async function SessionAttendancePage({
   students.sort((a, b) => a.name.localeCompare(b.name));
   const course = batch.courses as unknown as { title: string } | { title: string }[] | null;
   const courseInfo = Array.isArray(course) ? course[0] ?? null : course;
+  const roomRel = session.rooms as unknown as { name: string } | { name: string }[] | null;
+  const roomName = Array.isArray(roomRel) ? roomRel[0]?.name : roomRel?.name;
 
   return (
     <>
       <PageHeader
         title={session.title ?? 'Class attendance'}
-        description={`${batch.name}${courseInfo?.title ? ` · ${courseInfo.title}` : ''} · ${formatDate(session.session_date)}`}
+        description={[
+          batch.name,
+          courseInfo?.title,
+          formatDate(session.session_date),
+          roomName ?? session.venue,
+          session.start_time && session.end_time
+            ? `${formatClock(session.start_time)}–${formatClock(session.end_time)}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
         action={
           <ButtonLink href={`/dashboard/attendance/${params.batchId}`} size="sm" variant="secondary">
             Sessions

@@ -5,12 +5,13 @@ import { Card, CardBody, EmptyState, PageHeader } from '@/components/ui';
 import {
   CategoriesTable,
   LookupsTable,
+  RoomsTable,
   SettingsTable,
   type LookupRow,
   type SettingRow,
 } from '@/components/dashboard/settings-crud';
 import { SettingsTabs } from '@/components/dashboard/settings-tabs';
-import type { Category } from '@/lib/types';
+import type { Category, Room } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,21 +21,23 @@ export default async function SettingsPage() {
   if (role !== 'admin') redirect('/dashboard');
 
   const supabase = createClient();
-  const [settingsRes, lookupsRes, categoriesRes] = await Promise.all([
+  const [settingsRes, lookupsRes, categoriesRes, roomsRes] = await Promise.all([
     supabase.from('settings').select('*').order('group_name').order('key'),
     supabase.from('lookups').select('id, type, code, label, label_bn, sort_order, is_active').order('type').order('sort_order'),
     supabase.from('categories').select('id, parent_id, name, slug, description, icon, sort_order, is_active, show_on_home').order('sort_order'),
+    supabase.from('rooms').select('*').order('sort_order').order('name'),
   ]);
 
   const settings = (settingsRes.data as SettingRow[]) ?? [];
   const lookups = (lookupsRes.data as LookupRow[]) ?? [];
   const categories = (categoriesRes.data as Category[]) ?? [];
+  const rooms = (roomsRes.data as Room[]) ?? [];
 
   return (
     <>
       <PageHeader
         title="Settings"
-        description="Manage grouped config, option lists and course categories. Use the row menu to edit or delete."
+        description="Manage grouped config, option lists, course categories and classrooms. Use the row menu to edit or delete."
       />
 
       <SettingsTabs
@@ -71,6 +74,18 @@ export default async function SettingsPage() {
                 </div>
               ) : null}
               <CategoriesTable categories={categories} />
+            </CardBody>
+          </Card>
+        }
+        rooms={
+          <Card>
+            <CardBody className="p-0">
+              {rooms.length === 0 ? (
+                <div className="p-5">
+                  <EmptyState title="No classrooms" description="Add rooms so scheduled classes can show available or booked." />
+                </div>
+              ) : null}
+              <RoomsTable rooms={rooms} />
             </CardBody>
           </Card>
         }

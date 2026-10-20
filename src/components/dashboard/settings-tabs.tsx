@@ -6,19 +6,22 @@ const TABS = [
   { id: 'settings', label: 'Settings' },
   { id: 'lookups', label: 'Lookups' },
   { id: 'categories', label: 'Categories' },
+  { id: 'rooms', label: 'Classrooms' },
 ] as const;
 
 export function SettingsTabs({
   settings,
   lookups,
   categories,
+  rooms,
 }: {
   settings: ReactNode;
   lookups: ReactNode;
   categories: ReactNode;
+  rooms: ReactNode;
 }) {
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('settings');
-  const panels = { settings, lookups, categories };
+  const panels = { settings, lookups, categories, rooms };
 
   return (
     <div>

@@ -151,10 +151,22 @@ export interface CourseSection {
   lessons?: Lesson[];
 }
 
+export interface Room {
+  id: string;
+  name: string;
+  code: string;
+  capacity: number | null;
+  location: string | null;
+  notes: string | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
 export interface Batch {
   id: string;
   course_id: string;
   name: string;
+  room_id: string | null;
   venue: string | null;
   schedule: string | null;
   start_date: string | null;
@@ -162,6 +174,21 @@ export interface Batch {
   capacity: number | null;
   instructor_id: string | null;
   is_active: boolean;
+}
+
+export type SessionStatus = 'scheduled' | 'completed' | 'cancelled';
+
+export interface ClassSession {
+  id: string;
+  batch_id: string;
+  title: string | null;
+  session_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  room_id: string | null;
+  venue: string | null;
+  status: SessionStatus;
+  notes: string | null;
 }
 
 export interface Assessment {

@@ -5,19 +5,22 @@ import { useFormState } from 'react-dom';
 import {
   createCategoryAction,
   createLookupAction,
+  createRoomAction,
   createSettingAction,
   deleteCategoryAction,
   deleteLookupAction,
+  deleteRoomAction,
   deleteSettingAction,
   updateCategoryAction,
   updateLookupAction,
+  updateRoomAction,
   updateSettingAction,
 } from '@/actions/dashboard';
 import { Badge, Button, Field, Input, Select, Table, Td, Th, Textarea } from '@/components/ui';
 import { Modal } from '@/components/dashboard/modal';
 import { RowActionButton, RowActions } from '@/components/dashboard/row-actions';
 import { SubmitButton } from '@/components/dashboard/submit-button';
-import type { Category } from '@/lib/types';
+import type { Category, Room } from '@/lib/types';
 
 type ActionResult = { error?: string; success?: string } | null;
 
@@ -496,6 +499,140 @@ export function CategoriesTable({ categories }: { categories: Category[] }) {
             <input type="hidden" name="id" value={current.id} />
             <FormStatus state={deleteState} />
             <p className="text-sm text-slate-600">Delete {current.name}? Child categories keep their parent cleared.</p>
+            <SubmitButton variant="danger" pendingLabel="Deleting...">
+              Delete
+            </SubmitButton>
+          </form>
+        ) : null}
+      </Modal>
+    </div>
+  );
+}
+
+function RoomFields({ room }: { room?: Room }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {room ? <input type="hidden" name="id" value={room.id} /> : null}
+      <Field label="Name">
+        <Input name="name" required defaultValue={room?.name ?? ''} placeholder="e.g. Room 101" />
+      </Field>
+      <Field label="Code">
+        <Input name="code" defaultValue={room?.code ?? ''} placeholder="auto from name" />
+      </Field>
+      <Field label="Capacity">
+        <Input name="capacity" type="number" min="0" defaultValue={room?.capacity ?? ''} />
+      </Field>
+      <Field label="Location">
+        <Input name="location" defaultValue={room?.location ?? ''} placeholder="e.g. 2nd floor" />
+      </Field>
+      <Field label="Order">
+        <Input name="sort_order" type="number" defaultValue={room?.sort_order ?? 0} />
+      </Field>
+      <Field label="Active">
+        <Select name="is_active" defaultValue={room?.is_active === false ? 'off' : 'on'}>
+          <option value="on">Active</option>
+          <option value="off">Inactive</option>
+        </Select>
+      </Field>
+      <div className="sm:col-span-2">
+        <Field label="Notes">
+          <Textarea name="notes" defaultValue={room?.notes ?? ''} className="min-h-[72px]" />
+        </Field>
+      </div>
+    </div>
+  );
+}
+
+export function RoomsTable({ rooms }: { rooms: Room[] }) {
+  const [mode, setMode] = useState<'create' | 'edit' | 'delete' | null>(null);
+  const [current, setCurrent] = useState<Room | null>(null);
+  const [createState, createAction] = useFormState(createRoomAction, null);
+  const [updateState, updateAction] = useFormState(updateRoomAction, null);
+  const [deleteState, deleteAction] = useFormState(deleteRoomAction, null);
+
+  return (
+    <div>
+      <div className="flex justify-end px-5 py-4">
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => {
+            setCurrent(null);
+            setMode('create');
+          }}
+        >
+          Add classroom
+        </Button>
+      </div>
+      <Table>
+        <thead className="bg-slate-50">
+          <tr>
+            <Th>Room</Th>
+            <Th>Code</Th>
+            <Th>Location</Th>
+            <Th>Capacity</Th>
+            <Th>Active</Th>
+            <Th />
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {rooms.map((room) => (
+            <tr key={room.id}>
+              <Td className="font-medium text-slate-900">{room.name}</Td>
+              <Td className="font-mono text-xs">{room.code}</Td>
+              <Td className="text-xs text-slate-500">{room.location ?? '-'}</Td>
+              <Td>{room.capacity ?? '-'}</Td>
+              <Td>{room.is_active ? 'Yes' : 'No'}</Td>
+              <Td>
+                <RowActions>
+                  <RowActionButton
+                    onClick={() => {
+                      setCurrent(room);
+                      setMode('edit');
+                    }}
+                  >
+                    Edit
+                  </RowActionButton>
+                  <RowActionButton
+                    tone="danger"
+                    onClick={() => {
+                      setCurrent(room);
+                      setMode('delete');
+                    }}
+                  >
+                    Delete
+                  </RowActionButton>
+                </RowActions>
+              </Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+
+      <Modal open={mode === 'create'} title="Add classroom" onClose={() => setMode(null)}>
+        <form action={createAction} className="space-y-4">
+          <FormStatus state={createState} />
+          <RoomFields />
+          <SubmitButton pendingLabel="Adding...">Add classroom</SubmitButton>
+        </form>
+      </Modal>
+      <Modal open={mode === 'edit' && Boolean(current)} title="Edit classroom" onClose={() => setMode(null)}>
+        {current ? (
+          <form action={updateAction} className="space-y-4">
+            <FormStatus state={updateState} />
+            <RoomFields room={current} />
+            <SubmitButton pendingLabel="Saving...">Save classroom</SubmitButton>
+          </form>
+        ) : null}
+      </Modal>
+      <Modal open={mode === 'delete' && Boolean(current)} title="Delete classroom" onClose={() => setMode(null)}>
+        {current ? (
+          <form action={deleteAction} className="space-y-4">
+            <input type="hidden" name="id" value={current.id} />
+            <FormStatus state={deleteState} />
+            <p className="text-sm text-slate-600">
+              Delete {current.name}? Scheduled classes keep their date but lose this room assignment.
+            </p>
             <SubmitButton variant="danger" pendingLabel="Deleting...">
               Delete
             </SubmitButton>

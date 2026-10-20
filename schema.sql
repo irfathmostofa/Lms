@@ -173,10 +173,24 @@ create index course_outline_items_course_idx on public.course_outline_items(cour
 -- ---------------------------------------------------------------------------
 -- Offline
 -- ---------------------------------------------------------------------------
+create table public.rooms (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  code        text not null unique,
+  capacity    int,
+  location    text,
+  notes       text,
+  sort_order  int not null default 0,
+  is_active   boolean not null default true,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
 create table public.batches (
   id          uuid primary key default gen_random_uuid(),
   course_id   uuid not null references public.courses(id) on delete cascade,
   name        text not null,
+  room_id     uuid references public.rooms(id) on delete set null,
   venue       text,
   schedule    text,
   start_date  date,
@@ -189,6 +203,7 @@ create table public.batches (
 );
 create index batches_course_idx     on public.batches(course_id);
 create index batches_instructor_idx on public.batches(instructor_id);
+create index batches_room_idx       on public.batches(room_id);
 
 create table public.class_sessions (
   id            uuid primary key default gen_random_uuid(),
@@ -197,6 +212,7 @@ create table public.class_sessions (
   session_date  date not null,
   start_time    time,
   end_time      time,
+  room_id       uuid references public.rooms(id) on delete set null,
   venue         text,
   status        public.session_status not null default 'scheduled',
   notes         text,
@@ -205,6 +221,7 @@ create table public.class_sessions (
 );
 create index class_sessions_batch_idx on public.class_sessions(batch_id);
 create index class_sessions_date_idx  on public.class_sessions(session_date);
+create index class_sessions_room_idx  on public.class_sessions(room_id, session_date);
 
 create table public.attendance (
   id         uuid primary key default gen_random_uuid(),
@@ -1195,7 +1212,7 @@ declare t text;
 begin
   foreach t in array array[
     'profiles','categories','courses','course_access','course_instructors','instructor_shares',
-    'course_sections','lessons','course_outline_items','batches','class_sessions',
+    'course_sections','lessons','course_outline_items','rooms','batches','class_sessions',
     'attendance','enrollments','fee_records','products','product_files','orders',
     'order_items','payments','product_access','lesson_progress','assessments',
     'submissions','finance_categories','expenses','manual_incomes','lookups',
@@ -1282,6 +1299,12 @@ create policy outline_write on public.course_outline_items
   with check ((select public.is_editor()) or (select public.is_instructor_of(course_id)));
 
 -- offline -------------------------------------------------------------------
+create policy rooms_read on public.rooms
+  for select using ((select public.is_staff()));
+create policy rooms_write on public.rooms
+  for all using ((select public.is_admin()))
+  with check ((select public.is_admin()));
+
 create policy batches_read on public.batches
   for select using (
     (select public.is_staff())
