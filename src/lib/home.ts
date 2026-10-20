@@ -29,6 +29,7 @@ export interface HomeCategory {
   description: string | null;
   icon: string | null;
   parent_id: string | null;
+  show_on_home?: boolean;
 }
 
 export interface HomeProduct {
@@ -326,7 +327,7 @@ export async function getHomeCategories(): Promise<HomeCategory[]> {
     const supabase = createPublicClient();
     const { data } = await supabase
       .from('categories')
-      .select('id, name, slug, description, icon, parent_id')
+      .select('id, name, slug, description, icon, parent_id, show_on_home')
       .eq('is_active', true)
       .order('sort_order')
       .order('name');

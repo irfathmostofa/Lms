@@ -43,6 +43,7 @@ export interface Category {
   icon: string | null;
   sort_order: number;
   is_active: boolean;
+  show_on_home?: boolean;
 }
 
 export interface Course {
@@ -235,4 +236,72 @@ export interface HeroSlide {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface SiteNotice {
+  id: string;
+  message: string;
+  href: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface AboutPage {
+  id: string;
+  intro_title: string | null;
+  intro_body: string | null;
+  intro_image_url: string | null;
+  intro_lottie_url: string | null;
+  mission_title: string | null;
+  mission_body: string | null;
+  mission_image_url: string | null;
+  mission_lottie_url: string | null;
+  vision_title: string | null;
+  vision_body: string | null;
+  vision_image_url: string | null;
+  vision_lottie_url: string | null;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  role_title: string | null;
+  bio: string | null;
+  image_url: string | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export interface Partner {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  href: string | null;
+  sort_order: number;
+  is_active: boolean;
+  show_on_home: boolean;
+  show_on_about: boolean;
+}
+
+export interface Testimonial {
+  id: string;
+  name: string;
+  role_title: string | null;
+  quote: string;
+  avatar_url: string | null;
+  rating: number;
+  sort_order: number;
+  is_active: boolean;
+  show_on_home: boolean;
+  show_on_about: boolean;
+}
+
+export interface PageSection {
+  key: string;
+  label: string;
+  page: 'home' | 'about' | 'both';
+  enabled: boolean;
+  sort_order: number;
 }

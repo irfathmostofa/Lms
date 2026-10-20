@@ -10,6 +10,7 @@ export const CACHE_TAGS = {
   lookups: 'lookups',
   settings: 'settings',
   heroSlides: 'hero-slides',
+  website: 'website',
 } as const;
 
 export interface LookupOption {

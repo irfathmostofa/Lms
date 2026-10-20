@@ -1137,3 +1137,321 @@ export async function deleteHeroSlideAction(_prev: unknown, formData: FormData) 
   revalidateHero();
   return { success: 'Slide deleted.' };
 }
+
+function revalidateWebsite() {
+  revalidateTag(CACHE_TAGS.website);
+  revalidatePath('/');
+  revalidatePath('/about');
+  revalidatePath('/courses');
+  revalidatePath('/dashboard/notices');
+  revalidatePath('/dashboard/about');
+  revalidatePath('/dashboard/website');
+}
+
+async function uploadOptionalImage(formData: FormData, field: string, folder: string) {
+  const supabase = createClient();
+  const file = formData.get(field);
+  if (file instanceof File && file.size > 0) {
+    const uploaded = await uploadPublicImage(supabase, file, folder);
+    if (uploaded.error || !uploaded.url) {
+      return { error: uploaded.error === 'image' ? 'Use a JPG, PNG or WebP image up to 5 MB.' : 'The image could not be uploaded.', url: null };
+    }
+    return { error: null, url: uploaded.url };
+  }
+  return { error: null, url: optional(formData, field.replace('_file', '_url')) };
+}
+
+export async function createNoticeAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const message = str(formData, 'message');
+  if (!message) return { error: 'Enter a notice message.' };
+  const { error } = await supabase.from('site_notices').insert({
+    message,
+    href: optional(formData, 'href'),
+    starts_at: fromDateTimeLocal(optional(formData, 'starts_at')),
+    ends_at: fromDateTimeLocal(optional(formData, 'ends_at')),
+    is_active: str(formData, 'is_active') === 'on',
+    sort_order: num(formData, 'sort_order'),
+  });
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Notice saved.' };
+}
+
+export async function updateNoticeAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  const message = str(formData, 'message');
+  if (!id) return { error: 'Missing notice.' };
+  if (!message) return { error: 'Enter a notice message.' };
+  const { error } = await supabase
+    .from('site_notices')
+    .update({
+      message,
+      href: optional(formData, 'href'),
+      starts_at: fromDateTimeLocal(optional(formData, 'starts_at')),
+      ends_at: fromDateTimeLocal(optional(formData, 'ends_at')),
+      is_active: str(formData, 'is_active') === 'on',
+      sort_order: num(formData, 'sort_order'),
+    })
+    .eq('id', id);
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Notice updated.' };
+}
+
+export async function deleteNoticeAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  if (!id) return { error: 'Missing notice.' };
+  const { error } = await supabase.from('site_notices').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Notice deleted.' };
+}
+
+export async function saveAboutPageAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const intro = await uploadOptionalImage(formData, 'intro_image_file', 'about');
+  if (intro.error) return { error: intro.error };
+  const mission = await uploadOptionalImage(formData, 'mission_image_file', 'about');
+  if (mission.error) return { error: mission.error };
+  const vision = await uploadOptionalImage(formData, 'vision_image_file', 'about');
+  if (vision.error) return { error: vision.error };
+
+  const payload = {
+    intro_title: optional(formData, 'intro_title'),
+    intro_body: optional(formData, 'intro_body'),
+    intro_image_url: intro.url,
+    intro_lottie_url: optional(formData, 'intro_lottie_url'),
+    mission_title: str(formData, 'mission_title') || 'Our mission',
+    mission_body: optional(formData, 'mission_body'),
+    mission_image_url: mission.url,
+    mission_lottie_url: optional(formData, 'mission_lottie_url'),
+    vision_title: str(formData, 'vision_title') || 'Our vision',
+    vision_body: optional(formData, 'vision_body'),
+    vision_image_url: vision.url,
+    vision_lottie_url: optional(formData, 'vision_lottie_url'),
+  };
+
+  const id = str(formData, 'id');
+  const query = id
+    ? supabase.from('about_page').update(payload).eq('id', id)
+    : supabase.from('about_page').insert(payload);
+  const { error } = await query;
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'About page saved.' };
+}
+
+export async function createTeamMemberAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const name = str(formData, 'name');
+  if (!name) return { error: 'Enter a name.' };
+  const image = await uploadOptionalImage(formData, 'image_file', 'team');
+  if (image.error) return { error: image.error };
+  const { error } = await supabase.from('team_members').insert({
+    name,
+    role_title: optional(formData, 'role_title'),
+    bio: optional(formData, 'bio'),
+    image_url: image.url,
+    sort_order: num(formData, 'sort_order'),
+    is_active: str(formData, 'is_active') === 'on',
+  });
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Team member added.' };
+}
+
+export async function updateTeamMemberAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  const name = str(formData, 'name');
+  if (!id) return { error: 'Missing member.' };
+  if (!name) return { error: 'Enter a name.' };
+  const image = await uploadOptionalImage(formData, 'image_file', 'team');
+  if (image.error) return { error: image.error };
+  const { error } = await supabase
+    .from('team_members')
+    .update({
+      name,
+      role_title: optional(formData, 'role_title'),
+      bio: optional(formData, 'bio'),
+      image_url: image.url ?? optional(formData, 'image_url'),
+      sort_order: num(formData, 'sort_order'),
+      is_active: str(formData, 'is_active') === 'on',
+    })
+    .eq('id', id);
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Team member saved.' };
+}
+
+export async function deleteTeamMemberAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  if (!id) return { error: 'Missing member.' };
+  const { error } = await supabase.from('team_members').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Team member deleted.' };
+}
+
+export async function createPartnerAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const name = str(formData, 'name');
+  if (!name) return { error: 'Enter a partner name.' };
+  const logo = await uploadOptionalImage(formData, 'logo_file', 'partners');
+  if (logo.error) return { error: logo.error };
+  const { error } = await supabase.from('partners').insert({
+    name,
+    logo_url: logo.url,
+    href: optional(formData, 'href'),
+    sort_order: num(formData, 'sort_order'),
+    is_active: str(formData, 'is_active') === 'on',
+    show_on_home: str(formData, 'show_on_home') === 'on',
+    show_on_about: str(formData, 'show_on_about') === 'on',
+  });
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Partner added.' };
+}
+
+export async function updatePartnerAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  const name = str(formData, 'name');
+  if (!id) return { error: 'Missing partner.' };
+  if (!name) return { error: 'Enter a partner name.' };
+  const logo = await uploadOptionalImage(formData, 'logo_file', 'partners');
+  if (logo.error) return { error: logo.error };
+  const { error } = await supabase
+    .from('partners')
+    .update({
+      name,
+      logo_url: logo.url ?? optional(formData, 'logo_url'),
+      href: optional(formData, 'href'),
+      sort_order: num(formData, 'sort_order'),
+      is_active: str(formData, 'is_active') === 'on',
+      show_on_home: str(formData, 'show_on_home') === 'on',
+      show_on_about: str(formData, 'show_on_about') === 'on',
+    })
+    .eq('id', id);
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Partner saved.' };
+}
+
+export async function deletePartnerAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  if (!id) return { error: 'Missing partner.' };
+  const { error } = await supabase.from('partners').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Partner deleted.' };
+}
+
+export async function createTestimonialAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const name = str(formData, 'name');
+  const quote = str(formData, 'quote');
+  if (!name) return { error: 'Enter a name.' };
+  if (!quote) return { error: 'Enter a review.' };
+  const avatar = await uploadOptionalImage(formData, 'avatar_file', 'testimonials');
+  if (avatar.error) return { error: avatar.error };
+  const { error } = await supabase.from('testimonials').insert({
+    name,
+    role_title: optional(formData, 'role_title'),
+    quote,
+    avatar_url: avatar.url,
+    rating: Math.min(5, Math.max(1, num(formData, 'rating', 5))),
+    sort_order: num(formData, 'sort_order'),
+    is_active: str(formData, 'is_active') === 'on',
+    show_on_home: str(formData, 'show_on_home') === 'on',
+    show_on_about: str(formData, 'show_on_about') === 'on',
+  });
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Review added.' };
+}
+
+export async function updateTestimonialAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  const name = str(formData, 'name');
+  const quote = str(formData, 'quote');
+  if (!id) return { error: 'Missing review.' };
+  if (!name) return { error: 'Enter a name.' };
+  if (!quote) return { error: 'Enter a review.' };
+  const avatar = await uploadOptionalImage(formData, 'avatar_file', 'testimonials');
+  if (avatar.error) return { error: avatar.error };
+  const { error } = await supabase
+    .from('testimonials')
+    .update({
+      name,
+      role_title: optional(formData, 'role_title'),
+      quote,
+      avatar_url: avatar.url ?? optional(formData, 'avatar_url'),
+      rating: Math.min(5, Math.max(1, num(formData, 'rating', 5))),
+      sort_order: num(formData, 'sort_order'),
+      is_active: str(formData, 'is_active') === 'on',
+      show_on_home: str(formData, 'show_on_home') === 'on',
+      show_on_about: str(formData, 'show_on_about') === 'on',
+    })
+    .eq('id', id);
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Review saved.' };
+}
+
+export async function deleteTestimonialAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  if (!id) return { error: 'Missing review.' };
+  const { error } = await supabase.from('testimonials').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Review deleted.' };
+}
+
+export async function savePageSectionsAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const keys = formData.getAll('section_keys').map((value) => (typeof value === 'string' ? value : '')).filter(Boolean);
+  if (keys.length === 0) return { error: 'No sections to save.' };
+  const rows = keys.map((key) => ({ key, enabled: str(formData, `enabled_${key}`) === 'on' }));
+  const { error } = await supabase.from('page_sections').upsert(rows, { onConflict: 'key' });
+  if (error) return { error: error.message };
+  revalidateWebsite();
+  return { success: 'Section visibility saved.' };
+}
+
+export async function saveHomeCategoriesAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const ids = formData.getAll('category_ids').map((value) => (typeof value === 'string' ? value : '')).filter(Boolean);
+  for (const id of ids) {
+    const { error } = await supabase
+      .from('categories')
+      .update({ show_on_home: str(formData, `show_${id}`) === 'on' })
+      .eq('id', id);
+    if (error) return { error: error.message };
+  }
+  revalidateWebsite();
+  revalidatePath('/');
+  return { success: 'Home category sections saved.' };
+}

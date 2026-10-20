@@ -48,6 +48,15 @@ body {
   }
 }
 
+@keyframes notice-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 @layer utilities {
   .animate-drawer-in {
     animation: drawer-in 0.2s ease-out;
@@ -59,6 +68,17 @@ body {
 
   .animate-hero-in {
     animation: hero-in 0.45s ease-out both;
+  }
+
+  .notice-marquee {
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .notice-marquee-track {
+    display: flex;
+    width: max-content;
+    animation: notice-marquee 28s linear infinite;
   }
 
   .scrollbar-thin {
@@ -119,7 +139,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-drawer-in,
   .animate-fade-in,
-  .animate-hero-in {
+  .animate-hero-in,
+  .notice-marquee-track {
     animation: none;
   }
 }

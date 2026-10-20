@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { getSessionContext } from '@/lib/auth';
 import { ROLE_HOME } from '@/lib/constants';
 import { ButtonLink } from '@/components/ui';
+import { NoticeMarquee } from '@/components/site/notice-marquee';
+import { getActiveNotices } from '@/lib/website';
 import type { UserRole } from '@/lib/types';
 
 function initials(name: string): string {
@@ -12,7 +14,7 @@ function initials(name: string): string {
 }
 
 export async function SiteHeader() {
-  const ctx = await getSessionContext();
+  const [ctx, notices] = await Promise.all([getSessionContext(), getActiveNotices()]);
   const role: UserRole = ctx?.profile?.role ?? 'student';
   const name = ctx?.profile?.full_name || ctx?.email || 'Account';
   const avatarUrl = ctx?.profile?.avatar_url ?? null;
@@ -20,6 +22,7 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur">
+      <NoticeMarquee notices={notices} />
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3.5">
         <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-brand-700">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
@@ -31,6 +34,9 @@ export async function SiteHeader() {
         <nav className="flex items-center gap-3">
           <Link href="/courses" className="text-sm font-medium text-slate-600 hover:text-slate-900">
             Courses
+          </Link>
+          <Link href="/about" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+            About
           </Link>
 
           {ctx ? (

@@ -17,6 +17,9 @@ import {
   type HomeCourse,
 } from '@/lib/home';
 import { getPublicSettings } from '@/lib/data';
+import { LogoCarousel } from '@/components/home/logo-carousel';
+import { TestimonialCarousel } from '@/components/home/testimonial-carousel';
+import { getPageSections, getPartners, getTestimonials, isSectionEnabled } from '@/lib/website';
 
 export const revalidate = 300;
 
@@ -59,20 +62,28 @@ function buildCategoryGroups(categories: HomeCategory[], courses: HomeCourse[]):
 }
 
 export default async function HomePage() {
-  const [courses, categories, products, stats, settings, heroSlides] = await Promise.all([
-    getHomeCourses(),
-    getHomeCategories(),
-    getHomeProducts(4),
-    getHomeStats(),
-    getPublicSettings(['site_name', 'support_email', 'support_phone']),
-    getHomeHeroSlides(),
-  ]);
+  const [courses, categories, products, stats, settings, heroSlides, sections, partners, testimonials] =
+    await Promise.all([
+      getHomeCourses(),
+      getHomeCategories(),
+      getHomeProducts(4),
+      getHomeStats(),
+      getPublicSettings(['site_name', 'support_email', 'support_phone']),
+      getHomeHeroSlides(),
+      getPageSections(),
+      getPartners(),
+      getTestimonials(),
+    ]);
 
   const slides = heroSlides.map(toHeroSlideView);
 
   const siteName = settings.site_name ?? 'LMS Platform';
-  const featuredCourses = courses.slice(0, 6);
-  const categoryGroups = buildCategoryGroups(categories, courses);
+  const featuredCourses = courses.filter((course) => course.is_featured).slice(0, 6);
+  const featuredFallback = featuredCourses.length > 0 ? featuredCourses : courses.slice(0, 6);
+  const homeCategories = categories.filter((category) => category.show_on_home !== false);
+  const categoryGroups = buildCategoryGroups(homeCategories, courses);
+  const homePartners = partners.filter((item) => item.show_on_home);
+  const homeReviews = testimonials.filter((item) => item.show_on_home);
 
   const statItems: StatItem[] = stats
     ? [
@@ -107,9 +118,9 @@ export default async function HomePage() {
     <main className="min-h-screen bg-white">
       <SiteHeader />
       <HeroSlider slides={slides} />
-      <HomeStats items={statItems} />
+      {isSectionEnabled(sections, 'home_stats') ? <HomeStats items={statItems} /> : null}
 
-      {featuredCourses.length > 0 ? (
+      {isSectionEnabled(sections, 'home_featured') && featuredFallback.length > 0 ? (
         <section id="courses" className="bg-white py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -134,7 +145,7 @@ export default async function HomePage() {
             </div>
 
             <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {featuredCourses.map((course) => (
+              {featuredFallback.map((course) => (
                 <HomeCourseCard key={course.id} course={course} />
               ))}
             </div>
@@ -142,13 +153,23 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      <CategoryCourses categories={categoryGroups} courses={courses} />
-      <HomeResources products={products} />
-      <HomeCta
-        siteName={siteName}
-        supportEmail={settings.support_email}
-        supportPhone={settings.support_phone}
-      />
+      {isSectionEnabled(sections, 'home_categories') ? (
+        <CategoryCourses categories={categoryGroups} courses={courses} />
+      ) : null}
+      {isSectionEnabled(sections, 'home_partners') ? (
+        <LogoCarousel partners={homePartners} title="Trusted by partners" />
+      ) : null}
+      {isSectionEnabled(sections, 'home_testimonials') ? (
+        <TestimonialCarousel testimonials={homeReviews} title="What learners say" />
+      ) : null}
+      {isSectionEnabled(sections, 'home_resources') ? <HomeResources products={products} /> : null}
+      {isSectionEnabled(sections, 'home_cta') ? (
+        <HomeCta
+          siteName={siteName}
+          supportEmail={settings.support_email}
+          supportPhone={settings.support_phone}
+        />
+      ) : null}
 
       <SiteFooter
         siteName={siteName}

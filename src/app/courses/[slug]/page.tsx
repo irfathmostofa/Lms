@@ -9,11 +9,12 @@ import { createClient } from '@/lib/supabase/server';
 import { getSessionContext } from '@/lib/auth';
 import { hasSupabaseEnv } from '@/lib/env';
 import { unlockCourseAction } from '@/actions/courses';
-import { Badge, Card, CardBody, CardHeader, Field, Input } from '@/components/ui';
+import { Badge, Card, CardBody, Field, Input } from '@/components/ui';
 import { SubmitButton } from '@/components/dashboard/submit-button';
 import { LazyYouTube } from '@/components/dashboard/lazy-youtube';
 import { CourseEnrollPanel } from '@/components/courses/course-enroll-panel';
 import { SiteHeader } from '@/components/site-header';
+import { SiteFooter } from '@/components/site-footer';
 import { courseAccessCookieName, verifyCourseAccess } from '@/lib/course-access';
 import { looksLikeHtml } from '@/lib/rich-text';
 import { formatCurrency, splitList, youtubeIdFromInput } from '@/lib/utils';
@@ -104,8 +105,8 @@ export async function generateMetadata({
 
 function InfoSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-8">
-      <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+    <section className="mt-8 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+      <h2 className="text-xl font-bold text-slate-900">{title}</h2>
       {children}
     </section>
   );
@@ -113,10 +114,12 @@ function InfoSection({ title, children }: { title: string; children: React.React
 
 function PointList({ items }: { items: string[] }) {
   return (
-    <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+    <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
       {items.map((item) => (
-        <li key={item} className="flex gap-2 text-sm text-slate-600">
-          <span aria-hidden="true" className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" />
+        <li key={item} className="flex gap-2 text-sm text-slate-700">
+          <span aria-hidden="true" className="mt-0.5 text-emerald-600">
+            ✓
+          </span>
           <span>{item}</span>
         </li>
       ))}
@@ -163,198 +166,195 @@ export default async function CourseDetailPage({
     course.duration_label ??
     (course.duration_hours ? `${course.duration_hours} hours of content` : null);
 
-  return (
-    <>
-      <SiteHeader />
-      <main className="mx-auto max-w-6xl px-6 py-10">
-      <Link href="/courses" className="text-sm text-brand-600 hover:underline">
-        Back to courses
-      </Link>
-
-      <div className="mt-4 grid gap-8 lg:grid-cols-[2fr_1fr]">
+  const buyBox = (
+    <Card className="overflow-hidden shadow-xl">
+      <div className="relative aspect-video bg-slate-900">
+        {course.thumbnail_url ? (
+          <Image
+            src={course.thumbnail_url}
+            alt={course.title}
+            fill
+            sizes="360px"
+            className="object-cover"
+            priority
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-sm text-slate-400">No preview</div>
+        )}
+      </div>
+      <CardBody className="space-y-4">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="blue">{course.mode}</Badge>
-            {category ? <Badge>{category.name}</Badge> : null}
-            {course.level ? <Badge tone="violet">{course.level}</Badge> : null}
-            {course.visibility === 'password' ? <Badge tone="amber">Password</Badge> : null}
-          </div>
-          <h1 className="mt-3 text-3xl font-bold text-slate-900">{course.title}</h1>
-          <p className="mt-3 text-base text-slate-600">{course.summary}</p>
-          {course.author_name ? (
-            <p className="mt-2 text-sm text-slate-500">By {course.author_name}</p>
+          <p className="text-3xl font-bold text-slate-900">{price > 0 ? formatCurrency(price) : 'Free'}</p>
+          {course.discount_price ? (
+            <p className="text-sm text-slate-400 line-through">{formatCurrency(course.price)}</p>
           ) : null}
-          {course.tags?.length ? (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {course.tags.map((tag) => (
-                <Badge key={tag}>{tag}</Badge>
-              ))}
+        </div>
+        <ul className="space-y-2 text-sm text-slate-600">
+          <li>{course.total_lessons} lessons</li>
+          {duration ? <li>{duration}</li> : null}
+          <li>Lifetime access after verification</li>
+          {course.mode !== 'online' ? <li>Offline batch with attendance</li> : null}
+        </ul>
+        {locked ? (
+          <form action={unlockCourseAction} className="space-y-3">
+            <input type="hidden" name="slug" value={course.slug} />
+            <input type="hidden" name="course_id" value={course.id} />
+            <Field label="Course password">
+              <Input name="password" type="password" required />
+            </Field>
+            {searchParams.locked ? <p className="text-xs text-red-600">That password is not correct.</p> : null}
+            <SubmitButton className="w-full" pendingLabel="Checking...">
+              Unlock course
+            </SubmitButton>
+          </form>
+        ) : (
+          <CourseEnrollPanel
+            courseId={course.id}
+            courseSlug={course.slug}
+            price={price}
+            isLoggedIn={Boolean(ctx)}
+            role={ctx ? (ctx.profile?.role ?? 'student') : null}
+            enrollmentStatus={enrollmentStatus}
+          />
+        )}
+      </CardBody>
+    </Card>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <SiteHeader />
+      <section className="bg-slate-950 text-white">
+        <div className="mx-auto grid max-w-6xl gap-8 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div>
+            <p className="text-sm text-purple-300">
+              <Link href="/courses" className="hover:underline">
+                All courses
+              </Link>
+              {category ? (
+                <>
+                  <span className="mx-2 text-slate-500">/</span>
+                  <span>{category.name}</span>
+                </>
+              ) : null}
+            </p>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{course.title}</h1>
+            {course.summary ? <p className="mt-3 text-base leading-relaxed text-slate-200">{course.summary}</p> : null}
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-300">
+              {course.author_name ? (
+                <span>
+                  Created by <span className="font-semibold text-purple-200">{course.author_name}</span>
+                </span>
+              ) : null}
+              <span>{course.total_lessons} lessons</span>
+              {duration ? <span>{duration}</span> : null}
+              <span className="capitalize">{course.mode}</span>
+              {course.level ? <span>{course.level}</span> : null}
             </div>
-          ) : null}
-
-          <div className="relative mt-6 aspect-video w-full overflow-hidden rounded-xl bg-slate-100">
-            {course.thumbnail_url ? (
-              <Image
-                src={course.thumbnail_url}
-                alt={course.title}
-                fill
-                sizes="(max-width: 1024px) 100vw, 66vw"
-                className="object-cover"
-                priority
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-slate-400">
-                No preview image
+            {course.tags?.length ? (
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {course.tags.map((tag) => (
+                  <span key={tag} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-slate-200">
+                    {tag}
+                  </span>
+                ))}
               </div>
-            )}
+            ) : null}
           </div>
+          <div className="hidden lg:block" />
+        </div>
+      </section>
 
+      <main className="mx-auto grid max-w-6xl gap-8 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div>
+          <div className="lg:hidden">{buyBox}</div>
           {videoId ? (
-            <div className="mt-4">
+            <div className="mt-6 overflow-hidden rounded-xl lg:mt-0">
               <LazyYouTube videoId={videoId} title={`${course.title} intro video`} />
             </div>
           ) : null}
 
-          {course.description ? (
-            <InfoSection title="About this course">
-              {looksLikeHtml(course.description) ? (
-                <div
-                  className="rich-text mt-2"
-                  dangerouslySetInnerHTML={{ __html: course.description }}
-                />
-              ) : (
-                <p className="mt-2 whitespace-pre-line text-sm text-slate-600">
-                  {course.description}
-                </p>
-              )}
-            </InfoSection>
-          ) : null}
-
           {!locked && outcomes.length > 0 ? (
-            <InfoSection title="What will I learn?">
+            <InfoSection title="What you will learn">
               <PointList items={outcomes} />
             </InfoSection>
           ) : null}
 
+          {course.description ? (
+            <InfoSection title="Description">
+              {looksLikeHtml(course.description) ? (
+                <div className="rich-text mt-3" dangerouslySetInnerHTML={{ __html: course.description }} />
+              ) : (
+                <p className="mt-3 whitespace-pre-line text-sm text-slate-600">{course.description}</p>
+              )}
+            </InfoSection>
+          ) : null}
+
           {!locked && course.target_audience ? (
-            <InfoSection title="Target audience">
-              <p className="mt-2 whitespace-pre-line text-sm text-slate-600">
-                {course.target_audience}
-              </p>
+            <InfoSection title="Who this course is for">
+              <p className="mt-3 whitespace-pre-line text-sm text-slate-600">{course.target_audience}</p>
             </InfoSection>
           ) : null}
 
           {!locked && materials.length > 0 ? (
-            <InfoSection title="Materials included">
+            <InfoSection title="This course includes">
               <PointList items={materials} />
             </InfoSection>
           ) : null}
 
           {!locked && requirements.length > 0 ? (
-            <InfoSection title="Requirements / instructions">
+            <InfoSection title="Requirements">
               <PointList items={requirements} />
             </InfoSection>
           ) : null}
 
-          <InfoSection title="Curriculum">
+          <section className="mt-8">
+            <h2 className="text-xl font-bold text-slate-900">Course content</h2>
             {locked ? (
-              <div className="mt-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
+              <div className="mt-3 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center">
                 <p className="text-sm font-medium text-slate-700">This curriculum is locked</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Enter the course password in the sidebar to view the topics and lessons.
-                </p>
+                <p className="mt-1 text-xs text-slate-500">Enter the course password to view the topics and lessons.</p>
               </div>
             ) : sections.length === 0 ? (
-              <p className="mt-2 text-sm text-slate-500">Curriculum will be published soon.</p>
+              <p className="mt-3 text-sm text-slate-500">Curriculum will be published soon.</p>
             ) : (
-              <div className="mt-3 space-y-3">
+              <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
                 {sections.map((section) => {
                   const lessons = outline.filter((l) => l.section_id === section.id);
                   return (
-                    <Card key={section.id}>
-                      <CardHeader
-                        title={section.title}
-                        description={section.summary ?? `${lessons.length} lessons`}
-                      />
-                      <CardBody className="p-0">
-                        <ul className="divide-y divide-slate-100">
-                          {lessons.map((lesson) => (
-                            <li
-                              key={lesson.id}
-                              className="flex items-center justify-between px-5 py-2.5 text-sm"
-                            >
-                              <span className="text-slate-700">{lesson.title}</span>
-                              <span className="flex items-center gap-2 text-xs text-slate-400">
-                                {lesson.is_preview ? <Badge tone="green">Preview</Badge> : null}
-                                <span className="uppercase">{lesson.type}</span>
-                                {lesson.duration_min ? <span>{lesson.duration_min}m</span> : null}
-                              </span>
-                            </li>
-                          ))}
-                          {lessons.length === 0 ? (
-                            <li className="px-5 py-3 text-xs text-slate-400">
-                              No lessons in this section yet.
-                            </li>
-                          ) : null}
-                        </ul>
-                      </CardBody>
-                    </Card>
+                    <details key={section.id} className="border-b border-slate-200 last:border-b-0" open>
+                      <summary className="cursor-pointer bg-slate-50 px-5 py-3.5 text-sm font-semibold text-slate-900">
+                        {section.title}
+                        <span className="ml-2 font-normal text-slate-500">
+                          {section.summary ?? `${lessons.length} lectures`}
+                        </span>
+                      </summary>
+                      <ul className="divide-y divide-slate-100">
+                        {lessons.map((lesson) => (
+                          <li key={lesson.id} className="flex items-center justify-between px-5 py-2.5 text-sm">
+                            <span className="text-slate-700">{lesson.title}</span>
+                            <span className="flex items-center gap-2 text-xs text-slate-400">
+                              {lesson.is_preview ? <Badge tone="green">Preview</Badge> : null}
+                              <span className="uppercase">{lesson.type}</span>
+                              {lesson.duration_min ? <span>{lesson.duration_min}m</span> : null}
+                            </span>
+                          </li>
+                        ))}
+                        {lessons.length === 0 ? (
+                          <li className="px-5 py-3 text-xs text-slate-400">No lessons in this section yet.</li>
+                        ) : null}
+                      </ul>
+                    </details>
                   );
                 })}
               </div>
             )}
-          </InfoSection>
+          </section>
         </div>
 
-        <aside className="lg:sticky lg:top-6 lg:h-fit">
-          <Card>
-            <CardBody className="space-y-4">
-              <div>
-                <p className="text-2xl font-bold text-slate-900">
-                  {price > 0 ? formatCurrency(price) : 'Free'}
-                </p>
-                {course.discount_price ? (
-                  <p className="text-sm text-slate-400 line-through">
-                    {formatCurrency(course.price)}
-                  </p>
-                ) : null}
-              </div>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li>{course.total_lessons} lessons</li>
-                {duration ? <li>{duration}</li> : null}
-                <li>Lifetime access after verification</li>
-                {course.mode !== 'online' ? <li>Offline batch with attendance</li> : null}
-              </ul>
-
-              {locked ? (
-                <form action={unlockCourseAction} className="space-y-3">
-                  <input type="hidden" name="slug" value={course.slug} />
-                  <input type="hidden" name="course_id" value={course.id} />
-                  <Field label="Course password">
-                    <Input name="password" type="password" required />
-                  </Field>
-                  {searchParams.locked ? (
-                    <p className="text-xs text-red-600">That password is not correct.</p>
-                  ) : null}
-                  <SubmitButton className="w-full" pendingLabel="Checking...">
-                    Unlock course
-                  </SubmitButton>
-                </form>
-              ) : (
-                <CourseEnrollPanel
-                  courseId={course.id}
-                  courseSlug={course.slug}
-                  price={price}
-                  isLoggedIn={Boolean(ctx)}
-                  role={ctx ? (ctx.profile?.role ?? 'student') : null}
-                  enrollmentStatus={enrollmentStatus}
-                />
-              )}
-            </CardBody>
-          </Card>
-        </aside>
-      </div>
+        <aside className="-mt-28 hidden lg:sticky lg:top-24 lg:block lg:h-fit">{buyBox}</aside>
       </main>
-    </>
+      <SiteFooter />
+    </div>
   );
 }

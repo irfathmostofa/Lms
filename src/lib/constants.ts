@@ -40,6 +40,9 @@ export const DASHBOARD_NAV: NavItem[] = [
   { href: '/dashboard/finance', label: 'Finance', group: 'Finance', roles: ['admin', 'accountant'] },
   { href: '/dashboard/orders', label: 'Orders', group: 'Finance', roles: ['admin'] },
   { href: '/dashboard/hero', label: 'Hero slider', group: 'Website', roles: ['admin'] },
+  { href: '/dashboard/notices', label: 'Notices', group: 'Website', roles: ['admin'] },
+  { href: '/dashboard/about', label: 'About page', group: 'Website', roles: ['admin'] },
+  { href: '/dashboard/website', label: 'Home & about', group: 'Website', roles: ['admin'] },
   { href: '/dashboard/settings', label: 'Settings', group: 'Account', roles: ['admin'] },
 ];
 
