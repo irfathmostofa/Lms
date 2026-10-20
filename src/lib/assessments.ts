@@ -1,4 +1,4 @@
-import type { AssessmentType } from '@/lib/types';
+import type { AssessmentDelivery, AssessmentType } from '@/lib/types';
 
 export interface AssessmentTypeConfig {
   value: AssessmentType;
@@ -7,20 +7,22 @@ export interface AssessmentTypeConfig {
   targetHint: string;
   requireCourse: boolean;
   requireDue: boolean;
-  requireInstructions: boolean;
-  studentMode: 'text' | 'text_file' | 'file' | 'quiz' | 'in_person';
+  allowDeliveryChoice: boolean;
+  defaultDelivery: AssessmentDelivery;
+  studentOnlineMode: 'text_file' | 'file' | 'mcq' | 'none';
 }
 
 export const ASSESSMENT_TYPES: AssessmentTypeConfig[] = [
   {
     value: 'homework',
     label: 'Homework',
-    description: 'Take-home work with a written answer and optional attachment.',
+    description: 'Short take-home work. Choose online submit or offline collection before you assign it.',
     targetHint: 'Assign to a course, a batch, or both.',
     requireCourse: false,
     requireDue: true,
-    requireInstructions: true,
-    studentMode: 'text_file',
+    allowDeliveryChoice: true,
+    defaultDelivery: 'online',
+    studentOnlineMode: 'text_file',
   },
   {
     value: 'class_test',
@@ -29,18 +31,20 @@ export const ASSESSMENT_TYPES: AssessmentTypeConfig[] = [
     targetHint: 'Assign to the batch or course that will sit the test.',
     requireCourse: false,
     requireDue: true,
-    requireInstructions: false,
-    studentMode: 'in_person',
+    allowDeliveryChoice: false,
+    defaultDelivery: 'offline',
+    studentOnlineMode: 'none',
   },
   {
     value: 'assignment',
     label: 'Assignment',
-    description: 'Longer coursework. Students upload a file and optional notes.',
-    targetHint: 'Assign to the course students should submit against.',
+    description: 'Longer coursework. Choose online file submit or offline collection before you assign it.',
+    targetHint: 'Assign to the course students should complete.',
     requireCourse: true,
     requireDue: true,
-    requireInstructions: true,
-    studentMode: 'file',
+    allowDeliveryChoice: true,
+    defaultDelivery: 'online',
+    studentOnlineMode: 'file',
   },
   {
     value: 'exam',
@@ -49,18 +53,20 @@ export const ASSESSMENT_TYPES: AssessmentTypeConfig[] = [
     targetHint: 'Assign to a course or an exam batch.',
     requireCourse: false,
     requireDue: true,
-    requireInstructions: false,
-    studentMode: 'in_person',
+    allowDeliveryChoice: false,
+    defaultDelivery: 'offline',
+    studentOnlineMode: 'none',
   },
   {
     value: 'quiz',
     label: 'Quiz',
-    description: 'Short questions answered online in a text box.',
-    targetHint: 'Assign to the course the quiz belongs to.',
-    requireCourse: true,
+    description: 'Traditional MCQ. Online students take it in the browser; offline students sit it on paper.',
+    targetHint: 'Assign to the course or batch the quiz belongs to.',
+    requireCourse: false,
     requireDue: false,
-    requireInstructions: true,
-    studentMode: 'quiz',
+    allowDeliveryChoice: true,
+    defaultDelivery: 'online',
+    studentOnlineMode: 'mcq',
   },
 ];
 
@@ -71,4 +77,13 @@ export const ASSESSMENT_TYPE_MAP = Object.fromEntries(
 export function assessmentTypeConfig(type: string | null | undefined): AssessmentTypeConfig {
   if (type && type in ASSESSMENT_TYPE_MAP) return ASSESSMENT_TYPE_MAP[type as AssessmentType];
   return ASSESSMENT_TYPE_MAP.homework;
+}
+
+export function resolveDelivery(
+  type: string | null | undefined,
+  delivery: string | null | undefined,
+): AssessmentDelivery {
+  const config = assessmentTypeConfig(type);
+  if (!config.allowDeliveryChoice) return config.defaultDelivery;
+  return delivery === 'offline' ? 'offline' : 'online';
 }

@@ -10,9 +10,9 @@ import {
   StatCard,
 } from '@/components/ui';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
-import { assessmentTypeConfig } from '@/lib/assessments';
+import { assessmentTypeConfig, resolveDelivery } from '@/lib/assessments';
 import { formatDateTime } from '@/lib/utils';
-import type { Assessment } from '@/lib/types';
+import type { Assessment, QuizPaperQuestion } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,6 +76,18 @@ export default async function MyAssessmentsPage() {
   const submissionByAssessment = new Map(submissions.map((s) => [s.assessment_id, s]));
   const graded = submissions.filter((s) => s.status === 'graded').length;
 
+  const onlineQuizIds = relevant
+    .filter((assessment) => assessment.type === 'quiz' && resolveDelivery(assessment.type, assessment.delivery_mode) === 'online')
+    .map((assessment) => assessment.id);
+
+  const quizPapers = await Promise.all(
+    onlineQuizIds.map(async (id) => {
+      const { data } = await supabase.rpc('get_quiz_paper', { p_assessment: id });
+      return [id, (data as QuizPaperQuestion[]) ?? []] as const;
+    }),
+  );
+  const questionsByAssessment = new Map(quizPapers);
+
   return (
     <>
       <PageHeader title="Assessments" description="Homework, class tests, assignments and exams." />
@@ -113,6 +125,9 @@ export default async function MyAssessmentsPage() {
                       <Badge tone={typeTone[assessment.type] ?? 'slate'}>
                         {config.label}
                       </Badge>
+                      <Badge tone={resolveDelivery(assessment.type, assessment.delivery_mode) === 'offline' ? 'amber' : 'blue'}>
+                        {resolveDelivery(assessment.type, assessment.delivery_mode)}
+                      </Badge>
                       {submission ? (
                         <Badge tone={isGraded ? 'green' : 'amber'}>
                           {isGraded ? 'graded' : 'submitted'}
@@ -142,6 +157,8 @@ export default async function MyAssessmentsPage() {
                   <SubmissionForm
                     assessmentId={assessment.id}
                     type={assessment.type}
+                    deliveryMode={assessment.delivery_mode}
+                    questions={questionsByAssessment.get(assessment.id) ?? []}
                     existingContent={submission?.content}
                     existingFileUrl={submission?.file_url}
                     readOnly={isGraded}

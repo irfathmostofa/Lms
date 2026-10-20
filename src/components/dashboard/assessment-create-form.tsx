@@ -5,8 +5,10 @@ import { useMemo, useState } from 'react';
 import { createAssessmentAction } from '@/actions/dashboard';
 import { Field, Input, Select, Textarea } from '@/components/ui';
 import { SubmitButton } from '@/components/dashboard/submit-button';
-import { ASSESSMENT_TYPES, assessmentTypeConfig } from '@/lib/assessments';
-import type { AssessmentType } from '@/lib/types';
+import { McqBuilder } from '@/components/dashboard/mcq-builder';
+import { ASSESSMENT_TYPES, assessmentTypeConfig, resolveDelivery } from '@/lib/assessments';
+import { emptyQuizQuestion } from '@/lib/quiz';
+import type { AssessmentDelivery, AssessmentType, QuizQuestion } from '@/lib/types';
 
 export function AssessmentCreateForm({
   courses,
@@ -17,13 +19,22 @@ export function AssessmentCreateForm({
 }) {
   const [state, formAction] = useFormState(createAssessmentAction, null);
   const [type, setType] = useState<AssessmentType>('homework');
+  const [delivery, setDelivery] = useState<AssessmentDelivery>('online');
   const [courseId, setCourseId] = useState('');
+  const [questions, setQuestions] = useState<QuizQuestion[]>([emptyQuizQuestion(0)]);
   const config = assessmentTypeConfig(type);
+  const mode = resolveDelivery(type, delivery);
 
   const visibleBatches = useMemo(
     () => batches.filter((batch) => !courseId || !batch.course_id || batch.course_id === courseId),
     [batches, courseId],
   );
+
+  function changeType(next: AssessmentType) {
+    const nextConfig = assessmentTypeConfig(next);
+    setType(next);
+    setDelivery(nextConfig.defaultDelivery);
+  }
 
   return (
     <form action={formAction} className="grid gap-3 sm:grid-cols-3">
@@ -44,11 +55,7 @@ export function AssessmentCreateForm({
         </Field>
       </div>
       <Field label="Type">
-        <Select
-          name="type"
-          value={type}
-          onChange={(event) => setType(event.target.value as AssessmentType)}
-        >
+        <Select name="type" value={type} onChange={(event) => changeType(event.target.value as AssessmentType)}>
           {ASSESSMENT_TYPES.map((item) => (
             <option key={item.value} value={item.value}>
               {item.label}
@@ -60,6 +67,21 @@ export function AssessmentCreateForm({
       <div className="sm:col-span-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
         {config.description} {config.targetHint}
       </div>
+
+      {config.allowDeliveryChoice ? (
+        <Field label="How will students take this?">
+          <Select
+            name="delivery_mode"
+            value={mode}
+            onChange={(event) => setDelivery(event.target.value as AssessmentDelivery)}
+          >
+            <option value="online">Online</option>
+            <option value="offline">Offline</option>
+          </Select>
+        </Field>
+      ) : (
+        <input type="hidden" name="delivery_mode" value={mode} />
+      )}
 
       <Field label={config.requireCourse ? 'Course' : 'Course (optional)'}>
         <Select
@@ -90,49 +112,37 @@ export function AssessmentCreateForm({
         <Input name="due_at" type="datetime-local" required={config.requireDue} />
       </Field>
 
-      {config.studentMode === 'in_person' ? (
+      {mode === 'offline' ? (
         <div className="sm:col-span-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          Students will not submit online. After the {config.label.toLowerCase()}, enter marks from
-          the submissions page.
+          Offline {config.label.toLowerCase()}: students do not submit in the portal. Enter marks after collection.
         </div>
       ) : null}
 
-      {config.requireInstructions || config.studentMode !== 'in_person' ? (
+      {type === 'quiz' ? (
         <div className="sm:col-span-3">
-          <Field
-            label={config.requireInstructions ? 'Instructions' : 'Instructions (optional)'}
-            hint={
-              type === 'quiz'
-                ? 'List the questions students should answer.'
-                : type === 'assignment'
-                  ? 'Describe the file students must upload.'
-                  : undefined
-            }
-          >
+          <McqBuilder questions={questions} onChange={setQuestions} />
+        </div>
+      ) : (
+        <div className="sm:col-span-3">
+          <Field label={mode === 'online' ? 'Instructions' : 'Notes for staff (optional)'}>
             <Textarea
               name="instructions"
-              required={config.requireInstructions}
+              required={mode === 'online'}
               placeholder={
-                type === 'quiz'
-                  ? '1. Question one\n2. Question two'
-                  : type === 'assignment'
-                    ? 'Upload a PDF of your completed work.'
-                    : 'What should students complete?'
+                type === 'assignment'
+                  ? 'Describe the file students must upload, or how offline work is collected.'
+                  : 'What should students complete?'
               }
             />
           </Field>
         </div>
-      ) : (
-        <div className="sm:col-span-3">
-          <Field label="Notes for staff (optional)">
-            <Textarea name="instructions" placeholder="Venue, papers, or marking notes." />
-          </Field>
-        </div>
       )}
 
-      <Field label="Total marks">
-        <Input name="total_marks" type="number" min="0" step="0.01" defaultValue="100" required />
-      </Field>
+      {type !== 'quiz' ? (
+        <Field label="Total marks">
+          <Input name="total_marks" type="number" min="0" step="0.01" defaultValue="100" required />
+        </Field>
+      ) : null}
       <Field label="Pass marks">
         <Input name="pass_marks" type="number" min="0" step="0.01" />
       </Field>

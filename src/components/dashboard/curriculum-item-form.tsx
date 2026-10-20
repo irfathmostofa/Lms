@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { createCurriculumItemAction } from '@/actions/dashboard';
 import { Field, Input, Select, Textarea } from '@/components/ui';
 import { SubmitButton } from '@/components/dashboard/submit-button';
+import { McqBuilder } from '@/components/dashboard/mcq-builder';
+import { emptyQuizQuestion } from '@/lib/quiz';
+import type { AssessmentDelivery, QuizQuestion } from '@/lib/types';
 
 type ItemType = 'lesson' | 'quiz' | 'assignment';
 type LessonFormat = 'text' | 'youtube' | 'pdf' | 'image' | 'link';
@@ -19,22 +22,18 @@ export function CurriculumItemForm({
 }) {
   const [itemType, setItemType] = useState<ItemType>('lesson');
   const [lessonType, setLessonType] = useState<LessonFormat>('text');
+  const [delivery, setDelivery] = useState<AssessmentDelivery>('online');
+  const [questions, setQuestions] = useState<QuizQuestion[]>([emptyQuizQuestion(0)]);
 
   return (
     <form action={createCurriculumItemAction} className="rounded-lg border border-slate-200 p-4">
       <input type="hidden" name="course_id" value={courseId} />
       <input type="hidden" name="section_id" value={sectionId} />
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Add item
-      </p>
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Add item</p>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Item type">
-          <Select
-            name="item_type"
-            value={itemType}
-            onChange={(event) => setItemType(event.target.value as ItemType)}
-          >
+          <Select name="item_type" value={itemType} onChange={(event) => setItemType(event.target.value as ItemType)}>
             <option value="lesson">Lesson</option>
             <option value="quiz">Quiz</option>
             <option value="assignment">Assignment</option>
@@ -62,7 +61,6 @@ export function CurriculumItemForm({
             <Field label="Duration (minutes)">
               <Input name="duration_min" type="number" min="0" />
             </Field>
-
             {lessonType === 'youtube' ? (
               <div className="sm:col-span-2">
                 <Field label="YouTube link or video ID">
@@ -70,7 +68,6 @@ export function CurriculumItemForm({
                 </Field>
               </div>
             ) : null}
-
             {['pdf', 'image', 'link'].includes(lessonType) ? (
               <div className="sm:col-span-2">
                 <Field label="Media / file URL">
@@ -78,13 +75,11 @@ export function CurriculumItemForm({
                 </Field>
               </div>
             ) : null}
-
             <div className="sm:col-span-2">
               <Field label="Lesson content">
                 <Textarea name="content" placeholder="Notes or text shown with this lesson." />
               </Field>
             </div>
-
             <Field label="Free preview">
               <Select name="is_preview" defaultValue="off">
                 <option value="off">No</option>
@@ -94,29 +89,36 @@ export function CurriculumItemForm({
           </>
         ) : (
           <>
-            <div className="sm:col-span-2">
-              <Field
-                label={itemType === 'quiz' ? 'Questions' : 'Assignment brief'}
-                hint={
-                  itemType === 'quiz'
-                    ? 'Students answer these questions in a text box.'
-                    : 'Students upload a file against this brief.'
-                }
+            <Field label="How will students take this?">
+              <Select
+                name="delivery_mode"
+                value={delivery}
+                onChange={(event) => setDelivery(event.target.value as AssessmentDelivery)}
               >
-                <Textarea
-                  name="instructions"
-                  required
-                  placeholder={
-                    itemType === 'quiz'
-                      ? '1. Question one\n2. Question two'
-                      : 'Describe the file students must upload and how it is marked.'
-                  }
-                />
-              </Field>
-            </div>
-            <Field label="Total marks">
-              <Input name="total_marks" type="number" min="0" step="0.01" defaultValue="100" required />
+                <option value="online">Online</option>
+                <option value="offline">Offline</option>
+              </Select>
             </Field>
+            {itemType === 'quiz' ? (
+              <div className="sm:col-span-2">
+                <McqBuilder questions={questions} onChange={setQuestions} />
+              </div>
+            ) : (
+              <div className="sm:col-span-2">
+                <Field label="Assignment brief">
+                  <Textarea
+                    name="instructions"
+                    required={delivery === 'online'}
+                    placeholder="Describe the file students must upload, or how offline work is collected."
+                  />
+                </Field>
+              </div>
+            )}
+            {itemType !== 'quiz' ? (
+              <Field label="Total marks">
+                <Input name="total_marks" type="number" min="0" step="0.01" defaultValue="100" required />
+              </Field>
+            ) : null}
             <Field label="Pass marks">
               <Input name="pass_marks" type="number" min="0" step="0.01" />
             </Field>

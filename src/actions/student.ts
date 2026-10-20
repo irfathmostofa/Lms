@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireUser } from '@/lib/auth';
-import { assessmentTypeConfig } from '@/lib/assessments';
+import { assessmentTypeConfig, resolveDelivery } from '@/lib/assessments';
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -64,7 +64,7 @@ export async function submitAssessmentAction(_prev: unknown, formData: FormData)
 
   const { data: assessment, error: loadError } = await supabase
     .from('assessments')
-    .select('id, type, is_published')
+    .select('id, type, delivery_mode, is_published')
     .eq('id', assessmentId)
     .maybeSingle();
 
@@ -72,15 +72,15 @@ export async function submitAssessmentAction(_prev: unknown, formData: FormData)
   if (!assessment?.is_published) return { error: 'This assessment is not available.' };
 
   const config = assessmentTypeConfig(assessment.type);
-  if (config.studentMode === 'in_person') {
-    return { error: `${config.label} is taken in person. You cannot submit online.` };
+  const delivery = resolveDelivery(assessment.type, assessment.delivery_mode);
+  if (delivery === 'offline' || config.studentOnlineMode === 'none' || config.studentOnlineMode === 'mcq') {
+    return { error: `${config.label} is not submitted this way.` };
   }
 
   const content = str(formData, 'content') || null;
   const fileUrl = str(formData, 'file_url') || null;
-  if (config.studentMode === 'quiz' && !content) return { error: 'Enter your answers.' };
-  if (config.studentMode === 'text_file' && !content) return { error: 'Enter your answer.' };
-  if (config.studentMode === 'file' && !fileUrl) return { error: 'Add a file URL for this assignment.' };
+  if (config.studentOnlineMode === 'text_file' && !content) return { error: 'Enter your answer.' };
+  if (config.studentOnlineMode === 'file' && !fileUrl) return { error: 'Add a file URL for this assignment.' };
 
   const { error } = await supabase.from('submissions').upsert(
     {
@@ -97,6 +97,36 @@ export async function submitAssessmentAction(_prev: unknown, formData: FormData)
   if (error) return { error: error.message };
   revalidatePath('/dashboard/my-assessments');
   return { success: 'Submission saved.' };
+}
+
+export async function submitQuizAction(_prev: unknown, formData: FormData) {
+  const ctx = await requireUser();
+  const supabase = createClient();
+  const assessmentId = str(formData, 'assessment_id');
+  if (!assessmentId) return { error: 'Missing quiz.' };
+
+  let answers: Record<string, string> = {};
+  try {
+    const parsed = JSON.parse(str(formData, 'answers') || '{}') as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      answers = parsed as Record<string, string>;
+    }
+  } catch {
+    return { error: 'Answers could not be read.' };
+  }
+  if (Object.keys(answers).length === 0) return { error: 'Answer at least one question.' };
+
+  const { data, error } = await supabase.rpc('grade_quiz_submission', {
+    p_assessment: assessmentId,
+    p_answers: answers,
+  });
+
+  if (error) return { error: error.message };
+  const result = Array.isArray(data) ? data[0] : data;
+  revalidatePath('/dashboard/my-assessments');
+  return {
+    success: result?.feedback ?? `Quiz submitted. Score ${result?.marks ?? 0} / ${result?.total ?? 0}.`,
+  };
 }
 
 export async function toggleLessonProgressAction(formData: FormData) {

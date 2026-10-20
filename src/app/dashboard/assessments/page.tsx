@@ -85,6 +85,7 @@ export default async function AssessmentsPage() {
                 <tr>
                   <Th>Title</Th>
                   <Th>Type</Th>
+                  <Th>Mode</Th>
                   <Th>Assigned to</Th>
                   <Th>Marks</Th>
                   <Th>Due</Th>
@@ -105,6 +106,11 @@ export default async function AssessmentsPage() {
                       <Td>
                         <Badge tone={typeTone[assessment.type] ?? 'slate'}>{config.label}</Badge>
                       </Td>
+                      <Td>
+                        <Badge tone={assessment.delivery_mode === 'offline' ? 'amber' : 'blue'}>
+                          {assessment.delivery_mode === 'offline' ? 'offline' : 'online'}
+                        </Badge>
+                      </Td>
                       <Td className="text-xs text-slate-500">{targets.join(' / ') || '-'}</Td>
                       <Td>{assessment.total_marks}</Td>
                       <Td className="text-xs text-slate-500">{formatDateTime(assessment.due_at)}</Td>
@@ -118,7 +124,9 @@ export default async function AssessmentsPage() {
                           href={`/dashboard/assessments/${assessment.id}`}
                           className="text-sm font-medium text-brand-600 hover:underline"
                         >
-                          {config.studentMode === 'in_person' ? 'Marks' : 'Submissions'}
+                          {assessment.delivery_mode === 'offline' || config.studentOnlineMode === 'none'
+                            ? 'Marks'
+                            : 'Submissions'}
                         </Link>
                       </Td>
                     </tr>

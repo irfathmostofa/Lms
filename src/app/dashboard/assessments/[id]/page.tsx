@@ -55,7 +55,7 @@ export default async function AssessmentDetailPage({ params }: { params: { id: s
     <>
       <PageHeader
         title={assessment.title}
-        description={`${config.label} - out of ${assessment.total_marks} marks`}
+        description={`${config.label} · ${assessment.delivery_mode === 'offline' ? 'offline' : 'online'} · out of ${assessment.total_marks} marks`}
       />
       {error ? (
         <p className="mb-6 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

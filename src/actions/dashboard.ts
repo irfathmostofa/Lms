@@ -7,7 +7,8 @@ import { requireRole } from '@/lib/auth';
 import { CACHE_TAGS } from '@/lib/data';
 import { sanitizeRichText } from '@/lib/rich-text';
 import { fromDateTimeLocal, slugify, youtubeIdFromInput } from '@/lib/utils';
-import { assessmentTypeConfig } from '@/lib/assessments';
+import { assessmentTypeConfig, resolveDelivery } from '@/lib/assessments';
+import { parseQuizQuestions, quizQuestionRows, quizTotalMarks } from '@/lib/quiz';
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -622,19 +623,31 @@ export async function createCurriculumItemAction(formData: FormData) {
       is_preview: str(formData, 'is_preview') === 'on',
     });
   } else if (itemType === 'quiz' || itemType === 'assignment') {
-    await supabase.from('assessments').insert({
-      course_id: courseId,
-      section_id: sectionId,
-      title,
-      type: itemType,
-       instructions: optional(formData, 'instructions'),
-        total_marks: num(formData, 'total_marks', 100),
+    const delivery = resolveDelivery(itemType, str(formData, 'delivery_mode'));
+    const questions = itemType === 'quiz' ? parseQuizQuestions(str(formData, 'quiz_questions')) : [];
+    if (itemType === 'quiz' && questions.length === 0) return;
+    const { data, error } = await supabase
+      .from('assessments')
+      .insert({
+        course_id: courseId,
+        section_id: sectionId,
+        title,
+        type: itemType,
+        delivery_mode: delivery,
+        instructions: optional(formData, 'instructions'),
+        total_marks: itemType === 'quiz' ? quizTotalMarks(questions) : num(formData, 'total_marks', 100),
         pass_marks: str(formData, 'pass_marks') ? num(formData, 'pass_marks') : null,
         due_at: fromDateTimeLocal(optional(formData, 'due_at')),
-      sort_order: num(formData, 'sort_order'),
-      is_published: str(formData, 'is_published') === 'on',
-      created_by: ctx.userId,
-    });
+        sort_order: num(formData, 'sort_order'),
+        is_published: str(formData, 'is_published') === 'on',
+        created_by: ctx.userId,
+      })
+      .select('id')
+      .single();
+    if (error || !data) return;
+    if (itemType === 'quiz') {
+      await supabase.from('quiz_questions').insert(quizQuestionRows(questions, data.id));
+    }
   }
 
   revalidatePath(`/dashboard/content/${courseId}`);
@@ -679,6 +692,8 @@ export async function createAssessmentAction(_prev: unknown, formData: FormData)
   const batchId = optional(formData, 'batch_id');
   const instructions = optional(formData, 'instructions');
   const dueAt = fromDateTimeLocal(optional(formData, 'due_at'));
+  const delivery = resolveDelivery(type, str(formData, 'delivery_mode'));
+  const questions = config.value === 'quiz' ? parseQuizQuestions(str(formData, 'quiz_questions')) : [];
 
   if (!title) return { error: 'Enter a title.' };
   if (!courseId && !batchId) {
@@ -686,25 +701,39 @@ export async function createAssessmentAction(_prev: unknown, formData: FormData)
   }
   if (config.requireCourse && !courseId) return { error: 'This type must be assigned to a course.' };
   if (config.requireDue && !dueAt) return { error: 'Set a due date.' };
-  if (config.requireInstructions && !instructions) return { error: 'Add instructions for students.' };
+  if (config.value === 'quiz' && questions.length === 0) return { error: 'Add at least one MCQ.' };
+  if (delivery === 'online' && config.studentOnlineMode !== 'mcq' && config.studentOnlineMode !== 'none' && !instructions) {
+    return { error: 'Add instructions for students.' };
+  }
 
-  const { error } = await supabase.from('assessments').insert({
-    title,
-    course_id: courseId,
-    batch_id: batchId,
-    type: config.value,
-    instructions,
-    total_marks: num(formData, 'total_marks', 100),
-    pass_marks: str(formData, 'pass_marks') ? num(formData, 'pass_marks') : null,
-    due_at: dueAt,
-    is_published: str(formData, 'is_published') === 'on',
-    created_by: ctx.userId,
-  });
+  const { data, error } = await supabase
+    .from('assessments')
+    .insert({
+      title,
+      course_id: courseId,
+      batch_id: batchId,
+      type: config.value,
+      delivery_mode: delivery,
+      instructions,
+      total_marks: config.value === 'quiz' ? quizTotalMarks(questions) : num(formData, 'total_marks', 100),
+      pass_marks: str(formData, 'pass_marks') ? num(formData, 'pass_marks') : null,
+      due_at: dueAt,
+      is_published: str(formData, 'is_published') === 'on',
+      created_by: ctx.userId,
+    })
+    .select('id')
+    .single();
 
   if (error) return { error: error.message };
+  if (config.value === 'quiz' && data?.id) {
+    const { error: questionError } = await supabase
+      .from('quiz_questions')
+      .insert(quizQuestionRows(questions, data.id));
+    if (questionError) return { error: questionError.message };
+  }
   revalidatePath('/dashboard/assessments');
   revalidatePath('/dashboard/my-assessments');
-  return { success: `${config.label} created.` };
+  return { success: `${config.label} created as ${delivery}.` };
 }
 
 export async function gradeSubmissionAction(_prev: unknown, formData: FormData) {

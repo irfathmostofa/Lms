@@ -3,8 +3,9 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import { Button, Field, Input, Textarea } from '@/components/ui';
 import { submitAssessmentAction } from '@/actions/student';
-import { assessmentTypeConfig } from '@/lib/assessments';
-import type { AssessmentType } from '@/lib/types';
+import { McqPlayer } from '@/components/dashboard/mcq-player';
+import { assessmentTypeConfig, resolveDelivery } from '@/lib/assessments';
+import type { AssessmentDelivery, AssessmentType, QuizPaperQuestion } from '@/lib/types';
 
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -18,26 +19,49 @@ function Submit({ label }: { label: string }) {
 export function SubmissionForm({
   assessmentId,
   type,
+  deliveryMode,
+  questions = [],
   existingContent,
   existingFileUrl,
   readOnly,
 }: {
   assessmentId: string;
   type: AssessmentType;
+  deliveryMode?: AssessmentDelivery | null;
+  questions?: QuizPaperQuestion[];
   existingContent?: string | null;
   existingFileUrl?: string | null;
   readOnly?: boolean;
 }) {
   const [state, formAction] = useFormState(submitAssessmentAction, null);
   const config = assessmentTypeConfig(type);
+  const delivery = resolveDelivery(type, deliveryMode);
 
-  if (config.studentMode === 'in_person') {
+  if (delivery === 'offline' || config.studentOnlineMode === 'none') {
     return (
       <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-        This {config.label.toLowerCase()} is taken in person. You do not submit online. Marks will
-        appear here after your instructor grades it.
+        This {config.label.toLowerCase()} is offline. You do not submit in the portal. Marks appear
+        here after your instructor grades it.
       </div>
     );
+  }
+
+  if (config.studentOnlineMode === 'mcq') {
+    if (readOnly) {
+      return (
+        <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+          Your MCQ answers were submitted. The score above is auto-graded.
+        </div>
+      );
+    }
+    if (questions.length === 0) {
+      return (
+        <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+          This quiz has no questions yet.
+        </div>
+      );
+    }
+    return <McqPlayer assessmentId={assessmentId} questions={questions} />;
   }
 
   if (readOnly) {
@@ -59,32 +83,13 @@ export function SubmissionForm({
     );
   }
 
-  const submitLabel =
-    config.studentMode === 'quiz'
-      ? 'Submit answers'
-      : config.studentMode === 'file'
-        ? 'Submit assignment'
-        : 'Submit homework';
-
   return (
     <form action={formAction} className="space-y-3">
       {state?.error ? <p className="text-xs text-red-600">{state.error}</p> : null}
       {state?.success ? <p className="text-xs text-emerald-600">{state.success}</p> : null}
       <input type="hidden" name="assessment_id" value={assessmentId} />
 
-      {config.studentMode === 'quiz' ? (
-        <Field label="Your answers" hint="Number your answers to match the questions.">
-          <Textarea
-            name="content"
-            required
-            defaultValue={existingContent ?? ''}
-            className="min-h-[120px]"
-            placeholder={'1. ...\n2. ...'}
-          />
-        </Field>
-      ) : null}
-
-      {config.studentMode === 'text_file' ? (
+      {config.studentOnlineMode === 'text_file' ? (
         <Field label="Your answer">
           <Textarea
             name="content"
@@ -95,27 +100,25 @@ export function SubmissionForm({
         </Field>
       ) : null}
 
-      {config.studentMode === 'file' ? (
+      {config.studentOnlineMode === 'file' ? (
         <Field label="Notes (optional)">
           <Textarea name="content" defaultValue={existingContent ?? ''} className="min-h-[60px]" />
         </Field>
       ) : null}
 
-      {config.studentMode === 'file' || config.studentMode === 'text_file' ? (
-        <Field
-          label={config.studentMode === 'file' ? 'Work file URL' : 'Attachment URL (optional)'}
-        >
+      {config.studentOnlineMode === 'file' || config.studentOnlineMode === 'text_file' ? (
+        <Field label={config.studentOnlineMode === 'file' ? 'Work file URL' : 'Attachment URL (optional)'}>
           <Input
             name="file_url"
             type="url"
-            required={config.studentMode === 'file'}
+            required={config.studentOnlineMode === 'file'}
             defaultValue={existingFileUrl ?? ''}
             placeholder="https://..."
           />
         </Field>
       ) : null}
 
-      <Submit label={submitLabel} />
+      <Submit label={config.studentOnlineMode === 'file' ? 'Submit assignment' : 'Submit homework'} />
     </form>
   );
 }

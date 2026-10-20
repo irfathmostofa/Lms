@@ -8,6 +8,7 @@ export type PaymentStatus = 'pending' | 'verified' | 'rejected' | 'refunded' | '
 export type PaymentGateway = 'manual' | 'sslcommerz';
 export type LessonType = 'text' | 'image' | 'pdf' | 'youtube' | 'link';
 export type AssessmentType = 'homework' | 'class_test' | 'assignment' | 'exam' | 'quiz';
+export type AssessmentDelivery = 'online' | 'offline';
 export type SubmissionStatus = 'submitted' | 'graded' | 'returned' | 'late' | 'missing';
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 export type ProductType = 'digital' | 'physical';
@@ -170,6 +171,7 @@ export interface Assessment {
   title: string;
   instructions: string | null;
   type: AssessmentType;
+  delivery_mode: AssessmentDelivery;
   total_marks: number;
   pass_marks: number | null;
   due_at: string | null;
@@ -177,6 +179,34 @@ export interface Assessment {
   sort_order: number;
   created_by: string | null;
   created_at: string;
+}
+
+export type QuizOptionKey = 'A' | 'B' | 'C' | 'D' | 'E';
+
+export interface QuizQuestion {
+  id?: string;
+  prompt: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  option_e: string;
+  correct_option: QuizOptionKey;
+  marks: number;
+  sort_order: number;
+  explanation: string;
+}
+
+export interface QuizPaperQuestion {
+  id: string;
+  prompt: string;
+  option_a: string;
+  option_b: string;
+  option_c: string | null;
+  option_d: string | null;
+  option_e: string | null;
+  marks: number;
+  sort_order: number;
 }
 
 export interface Product {

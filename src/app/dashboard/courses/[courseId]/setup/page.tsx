@@ -289,6 +289,7 @@ async function CurriculumStep({ course }: { course: Course }) {
               title: item.title,
               type: item.type,
               meta: [
+                item.delivery_mode ?? 'online',
                 `${item.total_marks} marks`,
                 item.due_at ? `due ${formatDate(item.due_at)}` : null,
                 item.is_published ? 'published' : 'draft',
