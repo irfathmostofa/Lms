@@ -36,7 +36,7 @@ export default async function AboutPage() {
         <section className="bg-slate-950 py-16 text-white sm:py-20">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 lg:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-300">About us</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300">About us</p>
               <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
                 {about?.intro_title ?? 'Learn with people who care about your progress.'}
               </h1>

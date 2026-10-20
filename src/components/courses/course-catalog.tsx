@@ -13,8 +13,16 @@ const modeTone: Record<string, 'blue' | 'violet' | 'amber'> = {
   hybrid: 'violet',
 };
 
-export function CourseCatalog({ courses, categories }: { courses: Course[]; categories: Category[] }) {
-  const [query, setQuery] = useState('');
+export function CourseCatalog({
+  courses,
+  categories,
+  initialQuery = '',
+}: {
+  courses: Course[];
+  categories: Category[];
+  initialQuery?: string;
+}) {
+  const [query, setQuery] = useState(initialQuery);
   const [category, setCategory] = useState('all');
   const [mode, setMode] = useState('all');
   const [level, setLevel] = useState('all');
@@ -52,31 +60,33 @@ export function CourseCatalog({ courses, categories }: { courses: Course[]; cate
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-300">Catalog</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">All courses</h1>
-          <p className="mt-2 max-w-xl text-sm text-slate-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Catalog</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">All courses</h1>
+          <p className="mt-2 max-w-xl text-sm text-slate-500">
             {filtered.length} course{filtered.length === 1 ? '' : 's'} to help you learn a skill, change a role, or grow at work.
           </p>
         </div>
-        <label className="relative w-full max-w-md">
-          <span className="sr-only">Search courses</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search for anything"
-            className="w-full rounded-lg border border-white/15 bg-white/10 px-4 py-2.5 text-sm text-white placeholder:text-slate-400 outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-400/40"
-          />
-        </label>
+        <div className="w-full max-w-md">
+          <label className="relative block">
+            <span className="sr-only">Search courses</span>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search for a course, skill or instructor"
+              className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
+            />
+          </label>
+        </div>
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[220px_1fr]">
-        <aside className="space-y-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 lg:sticky lg:top-24 lg:h-fit">
+        <aside className="space-y-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm lg:sticky lg:top-24 lg:h-fit">
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">Category</span>
             <select
               value={category}
               onChange={(event) => setCategory(event.target.value)}
-              className="w-full rounded-lg border border-white/15 bg-slate-950 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
             >
               <option value="all">All categories</option>
               {categories.map((item) => (
@@ -91,7 +101,7 @@ export function CourseCatalog({ courses, categories }: { courses: Course[]; cate
             <select
               value={mode}
               onChange={(event) => setMode(event.target.value)}
-              className="w-full rounded-lg border border-white/15 bg-slate-950 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
             >
               <option value="all">All modes</option>
               <option value="online">Online</option>
@@ -105,7 +115,7 @@ export function CourseCatalog({ courses, categories }: { courses: Course[]; cate
               <select
                 value={level}
                 onChange={(event) => setLevel(event.target.value)}
-                className="w-full rounded-lg border border-white/15 bg-slate-950 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
               >
                 <option value="all">All levels</option>
                 {levels.map((item) => (
@@ -121,7 +131,7 @@ export function CourseCatalog({ courses, categories }: { courses: Course[]; cate
             <select
               value={sort}
               onChange={(event) => setSort(event.target.value)}
-              className="w-full rounded-lg border border-white/15 bg-slate-950 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
             >
               <option value="newest">Newest</option>
               <option value="popular">Most popular</option>

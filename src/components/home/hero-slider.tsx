@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { CourseSearch } from '@/components/courses/course-search';
 import { cn } from '@/lib/utils';
 import type { HeroSlideView } from '@/lib/home';
 
@@ -32,9 +33,12 @@ function DefaultVisual() {
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-200 sm:mt-4 sm:text-base">
           Structured lessons, practical projects and lifetime access. Upload slider images from the admin dashboard to replace this default hero.
         </p>
+        <div className="mt-6 max-w-xl sm:mt-8">
+          <CourseSearch variant="hero" />
+        </div>
         <Link
           href="/courses"
-          className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-brand-50 sm:mt-6 sm:min-h-12 sm:px-6"
+          className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-brand-50 sm:min-h-12 sm:px-6"
         >
           Explore courses
         </Link>
@@ -152,8 +156,11 @@ export function HeroSlider({ slides }: { slides: HeroSlideView[] }) {
                 {slide.description}
               </p>
             ) : null}
+            <div className="mt-5 max-w-xl sm:mt-7">
+              <CourseSearch variant="hero" inputId="course-search-hero" />
+            </div>
             {slide.href && slide.ctaLabel ? (
-              <div className="mt-5 flex flex-col gap-3 sm:mt-7 sm:flex-row">
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href={slide.href}
                   className="inline-flex min-h-11 items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-brand-50 sm:min-h-12 sm:px-6"

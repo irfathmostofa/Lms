@@ -224,26 +224,26 @@ export default async function CourseDetailPage({
   return (
     <div className="min-h-screen bg-slate-50">
       <SiteHeader />
-      <section className="bg-slate-950 text-white">
+      <section className="border-b border-slate-200 bg-white">
         <div className="mx-auto grid max-w-6xl gap-8 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div>
-            <p className="text-sm text-purple-300">
+            <p className="text-sm text-brand-700">
               <Link href="/courses" className="hover:underline">
                 All courses
               </Link>
               {category ? (
                 <>
-                  <span className="mx-2 text-slate-500">/</span>
-                  <span>{category.name}</span>
+                  <span className="mx-2 text-slate-300">/</span>
+                  <span className="text-slate-500">{category.name}</span>
                 </>
               ) : null}
             </p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{course.title}</h1>
-            {course.summary ? <p className="mt-3 text-base leading-relaxed text-slate-200">{course.summary}</p> : null}
-            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-300">
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{course.title}</h1>
+            {course.summary ? <p className="mt-3 text-base leading-relaxed text-slate-600">{course.summary}</p> : null}
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
               {course.author_name ? (
                 <span>
-                  Created by <span className="font-semibold text-purple-200">{course.author_name}</span>
+                  Created by <span className="font-semibold text-slate-800">{course.author_name}</span>
                 </span>
               ) : null}
               <span>{course.total_lessons} lessons</span>
@@ -254,7 +254,7 @@ export default async function CourseDetailPage({
             {course.tags?.length ? (
               <div className="mt-4 flex flex-wrap gap-1.5">
                 {course.tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-slate-200">
+                  <span key={tag} className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-800">
                     {tag}
                   </span>
                 ))}
@@ -352,7 +352,7 @@ export default async function CourseDetailPage({
           </section>
         </div>
 
-        <aside className="-mt-28 hidden lg:sticky lg:top-24 lg:block lg:h-fit">{buyBox}</aside>
+        <aside className="hidden lg:sticky lg:top-24 lg:block lg:h-fit">{buyBox}</aside>
       </main>
       <SiteFooter />
     </div>

@@ -3,6 +3,7 @@ import { getSessionContext } from '@/lib/auth';
 import { ROLE_HOME } from '@/lib/constants';
 import { ButtonLink } from '@/components/ui';
 import { NoticeMarquee } from '@/components/site/notice-marquee';
+import { CourseSearch } from '@/components/courses/course-search';
 import { getActiveNotices } from '@/lib/website';
 import type { UserRole } from '@/lib/types';
 
@@ -23,13 +24,15 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur">
       <NoticeMarquee notices={notices} />
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3.5">
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-brand-700">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 py-3.5 sm:gap-4">
+        <Link href="/" className="flex shrink-0 items-center gap-2 text-lg font-semibold text-brand-700">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
             L
           </span>
           <span className="hidden sm:inline">LMS Platform</span>
         </Link>
+
+        <CourseSearch inputId="course-search-header" className="hidden max-w-md flex-1 md:block" />
 
         <nav className="flex items-center gap-3">
           <Link href="/courses" className="text-sm font-medium text-slate-600 hover:text-slate-900">
@@ -74,6 +77,9 @@ export async function SiteHeader() {
             </>
           )}
         </nav>
+      </div>
+      <div className="border-t border-slate-100 px-6 py-2 md:hidden">
+        <CourseSearch inputId="course-search-header-mobile" className="mx-auto max-w-6xl" />
       </div>
     </header>
   );

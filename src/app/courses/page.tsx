@@ -45,15 +45,20 @@ async function getCategories(): Promise<Category[]> {
   }
 }
 
-export default async function CoursesPage() {
+export default async function CoursesPage({
+  searchParams,
+}: {
+  searchParams: { q?: string };
+}) {
   const [courses, categories, settings] = await Promise.all([
     getCourses(),
     getCategories(),
     getPublicSettings(['site_name', 'support_email', 'support_phone']),
   ]);
+  const initialQuery = (searchParams.q ?? '').trim();
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-50">
       <SiteHeader />
       {courses.length === 0 ? (
         <main className="mx-auto max-w-6xl px-6 py-16">
@@ -67,7 +72,12 @@ export default async function CoursesPage() {
           />
         </main>
       ) : (
-        <CourseCatalog courses={courses} categories={categories} />
+        <CourseCatalog
+          key={initialQuery}
+          courses={courses}
+          categories={categories}
+          initialQuery={initialQuery}
+        />
       )}
       <SiteFooter
         siteName={settings.site_name ?? 'LMS Platform'}
