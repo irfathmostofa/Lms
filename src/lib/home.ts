@@ -4,6 +4,32 @@ import { hasSupabaseEnv } from '@/lib/env';
 import { CACHE_TAGS } from '@/lib/data';
 import type { HeroSlide } from '@/lib/types';
 
+export interface HeroSlideView {
+  id: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  href: string;
+  ctaLabel: string;
+  secondaryHref?: string;
+  secondaryLabel?: string;
+  imageUrl: string | null;
+}
+
+export function toHeroSlideView(slide: HeroSlide): HeroSlideView {
+  return {
+    id: slide.id,
+    eyebrow: slide.eyebrow ?? '',
+    title: slide.title,
+    description: slide.description ?? '',
+    href: slide.href ?? '/courses',
+    ctaLabel: slide.cta_label ?? 'Explore courses',
+    secondaryHref: slide.secondary_href ?? undefined,
+    secondaryLabel: slide.secondary_label ?? undefined,
+    imageUrl: slide.image_url,
+  };
+}
+
 export interface HomeCourse {
   id: string;
   title: string;

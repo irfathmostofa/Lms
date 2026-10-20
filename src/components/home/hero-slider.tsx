@@ -4,33 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import type { HeroSlide as StoredHeroSlide } from '@/lib/types';
-
-export interface HeroSlideView {
-  id: string;
-  eyebrow: string;
-  title: string;
-  description: string;
-  href: string;
-  ctaLabel: string;
-  secondaryHref?: string;
-  secondaryLabel?: string;
-  imageUrl: string | null;
-}
-
-export function toHeroSlideView(slide: StoredHeroSlide): HeroSlideView {
-  return {
-    id: slide.id,
-    eyebrow: slide.eyebrow ?? '',
-    title: slide.title,
-    description: slide.description ?? '',
-    href: slide.href ?? '/courses',
-    ctaLabel: slide.cta_label ?? 'Explore courses',
-    secondaryHref: slide.secondary_href ?? undefined,
-    secondaryLabel: slide.secondary_label ?? undefined,
-    imageUrl: slide.image_url,
-  };
-}
+import type { HeroSlideView } from '@/lib/home';
 
 function ArrowIcon({ direction }: { direction: 'left' | 'right' }) {
   return (

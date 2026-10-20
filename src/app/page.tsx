@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
-import { HeroSlider, toHeroSlideView } from '@/components/home/hero-slider';
+import { HeroSlider } from '@/components/home/hero-slider';
 import { HomeStats, type StatItem } from '@/components/home/home-stats';
 import { HomeCourseCard } from '@/components/home/home-course-card';
 import { CategoryCourses, type CategoryGroup } from '@/components/home/category-courses';
@@ -13,6 +13,7 @@ import {
   getHomeHeroSlides,
   getHomeProducts,
   getHomeStats,
+  toHeroSlideView,
   type HomeCategory,
   type HomeCourse,
 } from '@/lib/home';
@@ -75,15 +76,19 @@ export default async function HomePage() {
       getTestimonials(),
     ]);
 
-  const slides = heroSlides.map(toHeroSlideView);
+  const slides = (Array.isArray(heroSlides) ? heroSlides : []).map(toHeroSlideView);
+  const courseList = Array.isArray(courses) ? courses : [];
+  const categoryList = Array.isArray(categories) ? categories : [];
+  const partnerList = Array.isArray(partners) ? partners : [];
+  const reviewList = Array.isArray(testimonials) ? testimonials : [];
 
   const siteName = settings.site_name ?? 'LMS Platform';
-  const featuredCourses = courses.filter((course) => course.is_featured).slice(0, 6);
-  const featuredFallback = featuredCourses.length > 0 ? featuredCourses : courses.slice(0, 6);
-  const homeCategories = categories.filter((category) => category.show_on_home !== false);
-  const categoryGroups = buildCategoryGroups(homeCategories, courses);
-  const homePartners = partners.filter((item) => item.show_on_home);
-  const homeReviews = testimonials.filter((item) => item.show_on_home);
+  const featuredCourses = courseList.filter((course) => course.is_featured).slice(0, 6);
+  const featuredFallback = featuredCourses.length > 0 ? featuredCourses : courseList.slice(0, 6);
+  const homeCategories = categoryList.filter((category) => category.show_on_home !== false);
+  const categoryGroups = buildCategoryGroups(homeCategories, courseList);
+  const homePartners = partnerList.filter((item) => item.show_on_home);
+  const homeReviews = reviewList.filter((item) => item.show_on_home);
 
   const statItems: StatItem[] = stats
     ? [
@@ -154,7 +159,7 @@ export default async function HomePage() {
       ) : null}
 
       {isSectionEnabled(sections, 'home_categories') ? (
-        <CategoryCourses categories={categoryGroups} courses={courses} />
+        <CategoryCourses categories={categoryGroups} courses={courseList} />
       ) : null}
       {isSectionEnabled(sections, 'home_partners') ? (
         <LogoCarousel partners={homePartners} title="Trusted by partners" />
