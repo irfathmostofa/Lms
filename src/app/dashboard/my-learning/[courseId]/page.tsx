@@ -37,31 +37,33 @@ export default async function CoursePlayerPage({
 
   if (!hasAccess) {
     return (
-      <div className="mx-auto max-w-2xl py-10">
-        <Link href="/dashboard/my-learning" className="text-sm text-brand-600 hover:underline">
-          Back to my learning
-        </Link>
-        <Card className="mt-4">
-          <CardHeader
-            title={course.title}
-            description="Your enrollment is not active yet."
-            action={<Badge tone="amber">{enrollment.status}</Badge>}
-          />
-          <CardBody className="space-y-4">
-            <p className="text-sm leading-relaxed text-slate-600">
-              Lessons and protected videos unlock automatically once your payment is verified and
-              your enrollment is active.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <ButtonLink href="/dashboard/my-fees" size="sm">
-                Check payment status
-              </ButtonLink>
-              <ButtonLink href={`/courses/${course.slug}`} size="sm" variant="outline">
-                View course details
-              </ButtonLink>
-            </div>
-          </CardBody>
-        </Card>
+      <div className="flex min-h-dvh items-center justify-center bg-slate-50 px-4">
+        <div className="w-full max-w-2xl">
+          <Link href="/dashboard/my-learning" className="text-sm text-brand-600 hover:underline">
+            Back to my learning
+          </Link>
+          <Card className="mt-4">
+            <CardHeader
+              title={course.title}
+              description="Your enrollment is not active yet."
+              action={<Badge tone="amber">{enrollment.status}</Badge>}
+            />
+            <CardBody className="space-y-4">
+              <p className="text-sm leading-relaxed text-slate-600">
+                Lessons and protected videos unlock automatically once your payment is verified and
+                your enrollment is active.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <ButtonLink href="/dashboard/my-fees" size="sm">
+                  Check payment status
+                </ButtonLink>
+                <ButtonLink href={`/courses/${course.slug}`} size="sm" variant="outline">
+                  View course details
+                </ButtonLink>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
       </div>
     );
   }

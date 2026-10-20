@@ -83,6 +83,7 @@ export function DashboardChrome({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const isClassroom = /^\/dashboard\/my-learning\/[^/]+$/.test(pathname);
   const [open, setOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -145,6 +146,10 @@ export function DashboardChrome({
   function closeDrawer() {
     setOpen(false);
     menuButtonRef.current?.focus();
+  }
+
+  if (isClassroom) {
+    return <>{children}</>;
   }
 
   return (
