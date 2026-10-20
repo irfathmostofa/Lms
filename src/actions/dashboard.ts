@@ -540,6 +540,8 @@ export async function createSessionAction(formData: FormData) {
   });
 
   revalidatePath('/dashboard/batches');
+  revalidatePath('/dashboard/attendance');
+  revalidatePath(`/dashboard/attendance/${batchId}`);
 }
 
 export async function markAttendanceAction(formData: FormData) {
@@ -550,17 +552,65 @@ export async function markAttendanceAction(formData: FormData) {
   const status = str(formData, 'status');
   if (!sessionId || !studentId || !status) return;
 
-  await supabase.from('attendance').upsert(
+  const allowed = ['present', 'absent', 'late', 'excused'];
+  if (!allowed.includes(status)) return { error: 'Invalid attendance status.' };
+
+  const { error } = await supabase.from('attendance').upsert(
     {
       session_id: sessionId,
       student_id: studentId,
       status,
+      remarks: optional(formData, 'remarks'),
       marked_by: ctx.userId,
     },
     { onConflict: 'session_id,student_id' },
   );
+  if (error) return { error: error.message };
 
   revalidatePath('/dashboard/batches');
+  revalidatePath('/dashboard/attendance');
+  revalidatePath('/dashboard/my-attendance');
+  return { success: 'Attendance saved.' };
+}
+
+export async function saveAttendanceSheetAction(_prev: unknown, formData: FormData) {
+  const ctx = await requireRole(['admin', 'instructor']);
+  const supabase = createClient();
+  const sessionId = str(formData, 'session_id');
+  const batchId = str(formData, 'batch_id');
+  if (!sessionId) return { error: 'Missing class session.' };
+
+  const allowed = new Set(['present', 'absent', 'late', 'excused']);
+  const studentIds = Array.from(
+    new Set(
+      formData
+        .getAll('student_ids')
+        .map((value) => (typeof value === 'string' ? value.trim() : ''))
+        .filter(Boolean),
+    ),
+  );
+  if (studentIds.length === 0) return { error: 'No students to mark.' };
+
+  const rows = studentIds.map((studentId) => {
+    const status = str(formData, `status_${studentId}`) || 'absent';
+    return {
+      session_id: sessionId,
+      student_id: studentId,
+      status: allowed.has(status) ? status : 'absent',
+      remarks: optional(formData, `remarks_${studentId}`),
+      marked_by: ctx.userId,
+    };
+  });
+
+  const { error } = await supabase.from('attendance').upsert(rows, { onConflict: 'session_id,student_id' });
+  if (error) return { error: error.message };
+
+  revalidatePath('/dashboard/batches');
+  revalidatePath('/dashboard/attendance');
+  revalidatePath(`/dashboard/attendance/${batchId}`);
+  revalidatePath(`/dashboard/attendance/${batchId}/${sessionId}`);
+  revalidatePath('/dashboard/my-attendance');
+  return { success: `Saved attendance for ${rows.length} student${rows.length === 1 ? '' : 's'}.` };
 }
 
 // Curriculum ----------------------------------------------------------------
@@ -734,9 +784,18 @@ export async function createAssessmentAction(_prev: unknown, formData: FormData)
       type: config.value,
       delivery_mode: delivery,
       instructions,
-      total_marks: config.value === 'quiz' ? quizTotalMarks(questions) : num(formData, 'total_marks', 100),
-      pass_marks: str(formData, 'pass_marks') ? num(formData, 'pass_marks') : null,
+      total_marks:
+        config.value === 'quiz'
+          ? quizTotalMarks(questions)
+          : config.value === 'homework'
+            ? 0
+            : num(formData, 'total_marks', 100),
+      pass_marks: config.value === 'homework' ? null : str(formData, 'pass_marks') ? num(formData, 'pass_marks') : null,
       due_at: dueAt,
+      time_limit_minutes:
+        config.value === 'quiz' && num(formData, 'time_limit_minutes') > 0
+          ? num(formData, 'time_limit_minutes')
+          : null,
       is_published: str(formData, 'is_published') === 'on',
       created_by: ctx.userId,
     })
@@ -819,9 +878,18 @@ export async function updateAssessmentAction(_prev: unknown, formData: FormData)
       type: config.value,
       delivery_mode: delivery,
       instructions,
-      total_marks: config.value === 'quiz' ? quizTotalMarks(questions) : num(formData, 'total_marks', 100),
-      pass_marks: str(formData, 'pass_marks') ? num(formData, 'pass_marks') : null,
+      total_marks:
+        config.value === 'quiz'
+          ? quizTotalMarks(questions)
+          : config.value === 'homework'
+            ? 0
+            : num(formData, 'total_marks', 100),
+      pass_marks: config.value === 'homework' ? null : str(formData, 'pass_marks') ? num(formData, 'pass_marks') : null,
       due_at: dueAt,
+      time_limit_minutes:
+        config.value === 'quiz' && num(formData, 'time_limit_minutes') > 0
+          ? num(formData, 'time_limit_minutes')
+          : null,
       is_published: str(formData, 'is_published') === 'on',
     })
     .eq('id', id);
@@ -863,7 +931,7 @@ export async function saveMarksSheetAction(_prev: unknown, formData: FormData) {
 
   const { data: assessment, error: loadError } = await supabase
     .from('assessments')
-    .select('id, total_marks')
+    .select('id, type, total_marks')
     .eq('id', assessmentId)
     .maybeSingle();
   if (loadError) return { error: loadError.message };
@@ -879,8 +947,57 @@ export async function saveMarksSheetAction(_prev: unknown, formData: FormData) {
   );
   if (studentIds.length === 0) return { error: 'No assigned students to mark.' };
 
+  const type = assessment.type as string;
   const totalMarks = Number(assessment.total_marks) || 0;
   const now = new Date().toISOString();
+
+  if (type === 'homework') {
+    const rows = studentIds.map((studentId) => {
+      const completion = str(formData, `completion_${studentId}`) === 'submitted' ? 'submitted' : 'missing';
+      return {
+        assessment_id: assessmentId,
+        student_id: studentId,
+        marks: null as number | null,
+        feedback: optional(formData, `remarks_${studentId}`),
+        status: completion,
+        graded_at: now,
+        graded_by: ctx.userId,
+      };
+    });
+    const { error } = await supabase.from('submissions').upsert(rows, { onConflict: 'assessment_id,student_id' });
+    if (error) return { error: error.message };
+    revalidatePath('/dashboard/assessments');
+    revalidatePath(`/dashboard/assessments/${assessmentId}`);
+    revalidatePath('/dashboard/my-assessments');
+    return { success: `Saved submission status for ${rows.length} student${rows.length === 1 ? '' : 's'}.` };
+  }
+
+  if (type === 'quiz') {
+    const updates: { student_id: string; feedback: string | null }[] = [];
+    for (const studentId of studentIds) {
+      updates.push({
+        student_id: studentId,
+        feedback: optional(formData, `remarks_${studentId}`),
+      });
+    }
+    for (const update of updates) {
+      const { error } = await supabase
+        .from('submissions')
+        .update({
+          feedback: update.feedback,
+          graded_at: now,
+          graded_by: ctx.userId,
+        })
+        .eq('assessment_id', assessmentId)
+        .eq('student_id', update.student_id);
+      if (error) return { error: error.message };
+    }
+    revalidatePath('/dashboard/assessments');
+    revalidatePath(`/dashboard/assessments/${assessmentId}`);
+    revalidatePath('/dashboard/my-assessments');
+    return { success: 'Quiz remarks saved. Marks stay from the student attempt.' };
+  }
+
   const rows: {
     assessment_id: string;
     student_id: string;
@@ -1057,14 +1174,193 @@ export async function updateOrderStatusAction(formData: FormData) {
 }
 
 // Settings ------------------------------------------------------------------
-export async function updateSettingAction(formData: FormData) {
+function revalidateSettings() {
+  revalidateTag(CACHE_TAGS.settings);
+  revalidateTag(CACHE_TAGS.lookups);
+  revalidatePath('/dashboard/settings');
+}
+
+function boolFromForm(formData: FormData, key: string) {
+  return str(formData, key) === 'on' || str(formData, key) === 'true';
+}
+
+export async function updateSettingAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  const key = str(formData, 'key');
+  if (!id && !key) return { error: 'Missing setting.' };
+  const valueType = str(formData, 'value_type') || 'text';
+  if (!['text', 'number', 'boolean', 'json'].includes(valueType)) {
+    return { error: 'Choose a valid value type.' };
+  }
+  const payload = {
+    group_name: str(formData, 'group_name') || 'general',
+    key: str(formData, 'key'),
+    value: optional(formData, 'value'),
+    value_type: valueType,
+    is_public: boolFromForm(formData, 'is_public'),
+  };
+  if (!payload.key) return { error: 'Enter a key.' };
+  const query = id
+    ? supabase.from('settings').update(payload).eq('id', id)
+    : supabase.from('settings').update(payload).eq('key', key);
+  const { error } = await query;
+  if (error) return { error: error.message };
+  revalidateSettings();
+  return { success: 'Setting saved.' };
+}
+
+export async function createSettingAction(_prev: unknown, formData: FormData) {
   await requireRole(['admin']);
   const supabase = createClient();
   const key = str(formData, 'key');
-  if (!key) return;
-  await supabase.from('settings').update({ value: str(formData, 'value') }).eq('key', key);
-  revalidateTag(CACHE_TAGS.settings);
-  revalidatePath('/dashboard/settings');
+  const groupName = str(formData, 'group_name') || 'general';
+  if (!key) return { error: 'Enter a key.' };
+  const valueType = str(formData, 'value_type') || 'text';
+  if (!['text', 'number', 'boolean', 'json'].includes(valueType)) {
+    return { error: 'Choose a valid value type.' };
+  }
+  const { error } = await supabase.from('settings').insert({
+    group_name: groupName,
+    key,
+    value: optional(formData, 'value'),
+    value_type: valueType,
+    is_public: boolFromForm(formData, 'is_public'),
+  });
+  if (error) return { error: error.message };
+  revalidateSettings();
+  return { success: 'Setting added.' };
+}
+
+export async function deleteSettingAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  if (!id) return { error: 'Missing setting.' };
+  const { error } = await supabase.from('settings').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidateSettings();
+  return { success: 'Setting deleted.' };
+}
+
+export async function createLookupAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const type = str(formData, 'type');
+  const code = str(formData, 'code');
+  const label = str(formData, 'label');
+  if (!type || !code || !label) return { error: 'Type, code and label are required.' };
+  const { error } = await supabase.from('lookups').insert({
+    type,
+    code,
+    label,
+    label_bn: optional(formData, 'label_bn'),
+    sort_order: num(formData, 'sort_order'),
+    is_active: boolFromForm(formData, 'is_active'),
+  });
+  if (error) return { error: error.message };
+  revalidateSettings();
+  return { success: 'Lookup added.' };
+}
+
+export async function updateLookupAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  const type = str(formData, 'type');
+  const code = str(formData, 'code');
+  const label = str(formData, 'label');
+  if (!id) return { error: 'Missing lookup.' };
+  if (!type || !code || !label) return { error: 'Type, code and label are required.' };
+  const { error } = await supabase
+    .from('lookups')
+    .update({
+      type,
+      code,
+      label,
+      label_bn: optional(formData, 'label_bn'),
+      sort_order: num(formData, 'sort_order'),
+      is_active: boolFromForm(formData, 'is_active'),
+    })
+    .eq('id', id);
+  if (error) return { error: error.message };
+  revalidateSettings();
+  return { success: 'Lookup saved.' };
+}
+
+export async function deleteLookupAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  if (!id) return { error: 'Missing lookup.' };
+  const { error } = await supabase.from('lookups').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidateSettings();
+  return { success: 'Lookup deleted.' };
+}
+
+export async function createCategoryAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const name = str(formData, 'name');
+  if (!name) return { error: 'Enter a category name.' };
+  const slug = slugify(str(formData, 'slug') || name);
+  if (!slug) return { error: 'Enter a valid slug.' };
+  const { error } = await supabase.from('categories').insert({
+    name,
+    slug,
+    parent_id: optional(formData, 'parent_id'),
+    description: optional(formData, 'description'),
+    sort_order: num(formData, 'sort_order'),
+    is_active: boolFromForm(formData, 'is_active'),
+    show_on_home: boolFromForm(formData, 'show_on_home'),
+  });
+  if (error) return { error: error.message };
+  revalidateSettings();
+  revalidateTag(CACHE_TAGS.website);
+  return { success: 'Category added.' };
+}
+
+export async function updateCategoryAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  const name = str(formData, 'name');
+  if (!id) return { error: 'Missing category.' };
+  if (!name) return { error: 'Enter a category name.' };
+  const slug = slugify(str(formData, 'slug') || name);
+  if (!slug) return { error: 'Enter a valid slug.' };
+  const parentId = optional(formData, 'parent_id');
+  if (parentId === id) return { error: 'A category cannot be its own parent.' };
+  const { error } = await supabase
+    .from('categories')
+    .update({
+      name,
+      slug,
+      parent_id: parentId,
+      description: optional(formData, 'description'),
+      sort_order: num(formData, 'sort_order'),
+      is_active: boolFromForm(formData, 'is_active'),
+      show_on_home: boolFromForm(formData, 'show_on_home'),
+    })
+    .eq('id', id);
+  if (error) return { error: error.message };
+  revalidateSettings();
+  revalidateTag(CACHE_TAGS.website);
+  return { success: 'Category saved.' };
+}
+
+export async function deleteCategoryAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  if (!id) return { error: 'Missing category.' };
+  const { error } = await supabase.from('categories').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidateSettings();
+  revalidateTag(CACHE_TAGS.website);
+  return { success: 'Category deleted.' };
 }
 
 function revalidateHero() {

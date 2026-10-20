@@ -34,6 +34,7 @@ export const DASHBOARD_NAV: NavItem[] = [
   { href: '/dashboard/courses', label: 'Courses', group: 'Academics', roles: ['admin', 'editor', 'instructor'] },
   { href: '/dashboard/enrollments', label: 'Enrollments', group: 'People', roles: ['admin'] },
   { href: '/dashboard/batches', label: 'Batches', group: 'Academics', roles: ['admin', 'instructor'] },
+  { href: '/dashboard/attendance', label: 'Attendance', group: 'Academics', roles: ['admin', 'instructor'] },
   { href: '/dashboard/assessments', label: 'Assessments', group: 'Academics', roles: ['admin', 'instructor'] },
   { href: '/dashboard/content', label: 'Content', group: 'Academics', roles: ['admin', 'editor'] },
   { href: '/dashboard/payments', label: 'Payments', group: 'Finance', roles: ['admin', 'accountant'] },

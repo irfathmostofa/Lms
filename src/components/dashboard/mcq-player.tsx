@@ -1,34 +1,67 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui';
 import { submitQuizAction } from '@/actions/student';
 import { quizOptionEntries } from '@/lib/quiz';
 import type { QuizPaperQuestion } from '@/lib/types';
 
-function Submit() {
+function Submit({ disabled }: { disabled?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button type="submit" disabled={pending || disabled}>
       {pending ? 'Submitting...' : 'Submit quiz'}
     </Button>
   );
 }
 
+function formatRemaining(seconds: number) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 export function McqPlayer({
   assessmentId,
   questions,
+  timeLimitMinutes,
 }: {
   assessmentId: string;
   questions: QuizPaperQuestion[];
+  timeLimitMinutes?: number | null;
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [state, formAction] = useFormState(submitQuizAction, null);
+  const [remaining, setRemaining] = useState(
+    timeLimitMinutes && timeLimitMinutes > 0 ? timeLimitMinutes * 60 : null,
+  );
+  const formRef = useRef<HTMLFormElement>(null);
+  const submittedRef = useRef(false);
+  const answersRef = useRef(answers);
+  answersRef.current = answers;
   const answered = useMemo(() => Object.keys(answers).length, [answers]);
+  const expired = remaining === 0;
+
+  useEffect(() => {
+    if (remaining == null) return;
+    if (remaining <= 0) {
+      if (!submittedRef.current && Object.keys(answersRef.current).length > 0) {
+        submittedRef.current = true;
+        formRef.current?.requestSubmit();
+      }
+      return;
+    }
+    const timer = window.setTimeout(() => setRemaining((value) => (value == null ? value : value - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [remaining]);
+
+  useEffect(() => {
+    if (state?.success) submittedRef.current = true;
+  }, [state?.success]);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form ref={formRef} action={formAction} className="space-y-4">
       <input type="hidden" name="assessment_id" value={assessmentId} />
       <input type="hidden" name="answers" value={JSON.stringify(answers)} />
       {state?.error ? (
@@ -40,14 +73,22 @@ export function McqPlayer({
         </p>
       ) : null}
 
-      <p className="text-xs text-slate-500">
-        {answered} of {questions.length} answered. Choose one option per question.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+        <p>
+          {answered} of {questions.length} answered. Choose one option per question.
+        </p>
+        {remaining != null ? (
+          <p className={`font-semibold ${remaining <= 30 ? 'text-red-600' : 'text-slate-700'}`}>
+            Time left: {formatRemaining(remaining)}
+            {expired ? ' · submitting' : ''}
+          </p>
+        ) : null}
+      </div>
 
       {questions.map((question, index) => {
         const options = quizOptionEntries(question);
         return (
-          <fieldset key={question.id} className="rounded-xl border border-slate-200 p-4">
+          <fieldset key={question.id} className="rounded-xl border border-slate-200 p-4" disabled={expired}>
             <legend className="text-sm font-semibold text-slate-900">
               {index + 1}. {question.prompt}
               <span className="ml-2 text-xs font-normal text-slate-400">{question.marks} marks</span>
@@ -65,6 +106,7 @@ export function McqPlayer({
                     checked={answers[question.id] === option.key}
                     onChange={() => setAnswers((current) => ({ ...current, [question.id]: option.key }))}
                     className="mt-1"
+                    disabled={expired}
                   />
                   <span>
                     <span className="font-semibold text-slate-700">{option.key}.</span> {option.text}
@@ -76,7 +118,7 @@ export function McqPlayer({
         );
       })}
 
-      <Submit />
+      <Submit disabled={expired && answered === 0} />
     </form>
   );
 }

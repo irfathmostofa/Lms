@@ -26,6 +26,7 @@ interface CourseRow {
 
 interface SessionRow {
   id: string;
+  batch_id: string;
   session_date: string;
   title: string | null;
   status: string;
@@ -56,7 +57,7 @@ export default async function InstructorHomePage() {
   const sessionsRes = batchIds.length
     ? await supabase
         .from('class_sessions')
-        .select('id, session_date, title, status, batches(name)')
+        .select('id, batch_id, session_date, title, status, batches(name)')
         .in('batch_id', batchIds)
         .order('session_date', { ascending: false })
         .limit(10)
@@ -68,7 +69,7 @@ export default async function InstructorHomePage() {
     <>
       <PageHeader
         title="Instructor"
-        description="Your courses, batches, upcoming classes and assessments."
+        description="Your courses, batches, attendance, upcoming classes and assessments."
       />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -135,7 +136,10 @@ export default async function InstructorHomePage() {
           <CardBody className="p-0">
             {sessions.length === 0 ? (
               <div className="p-5">
-                <EmptyState title="No sessions scheduled" description="Create one under Batches." />
+                <EmptyState
+                  title="No sessions scheduled"
+                  description="Create a class under Attendance or Batches, then mark the roster."
+                />
               </div>
             ) : (
               <Table>
@@ -145,6 +149,7 @@ export default async function InstructorHomePage() {
                     <Th>Class</Th>
                     <Th>Batch</Th>
                     <Th>Status</Th>
+                    <Th />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -157,6 +162,14 @@ export default async function InstructorHomePage() {
                         <Badge tone={session.status === 'completed' ? 'green' : 'amber'}>
                           {session.status}
                         </Badge>
+                      </Td>
+                      <Td>
+                        <Link
+                          href={`/dashboard/attendance/${session.batch_id}/${session.id}`}
+                          className="text-sm font-medium text-brand-600 hover:underline"
+                        >
+                          Mark
+                        </Link>
                       </Td>
                     </tr>
                   ))}

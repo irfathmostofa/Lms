@@ -131,14 +131,31 @@ export function AssessmentForm({
 
       {mode === 'offline' ? (
         <div className="sm:col-span-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          Offline {config.label.toLowerCase()}: students do not submit in the portal. Enter marks after collection.
+          Offline {config.label.toLowerCase()}: students do not submit in the portal.
+          {type === 'homework'
+            ? ' Track submitted or not submitted after collection.'
+            : type === 'quiz'
+              ? ' Scores come from the paper attempt; add remarks after.'
+              : ' Enter marks after collection.'}
         </div>
       ) : null}
 
       {type === 'quiz' ? (
-        <div className="sm:col-span-3">
-          <McqBuilder questions={questions} onChange={setQuestions} />
-        </div>
+        <>
+          <Field label="Timer (minutes)">
+            <Input
+              name="time_limit_minutes"
+              type="number"
+              min="1"
+              step="1"
+              defaultValue={assessment?.time_limit_minutes ?? ''}
+              placeholder="e.g. 20"
+            />
+          </Field>
+          <div className="sm:col-span-3">
+            <McqBuilder questions={questions} onChange={setQuestions} />
+          </div>
+        </>
       ) : (
         <div className="sm:col-span-3">
           <Field label={mode === 'online' ? 'Instructions' : 'Notes for staff (optional)'}>
@@ -156,7 +173,7 @@ export function AssessmentForm({
         </div>
       )}
 
-      {type !== 'quiz' ? (
+      {type !== 'quiz' && type !== 'homework' ? (
         <Field label="Total marks">
           <Input
             name="total_marks"
@@ -168,15 +185,17 @@ export function AssessmentForm({
           />
         </Field>
       ) : null}
-      <Field label="Pass marks">
-        <Input
-          name="pass_marks"
-          type="number"
-          min="0"
-          step="0.01"
-          defaultValue={assessment?.pass_marks ?? ''}
-        />
-      </Field>
+      {type !== 'homework' ? (
+        <Field label="Pass marks">
+          <Input
+            name="pass_marks"
+            type="number"
+            min="0"
+            step="0.01"
+            defaultValue={assessment?.pass_marks ?? ''}
+          />
+        </Field>
+      ) : null}
       <Field label="Publish now">
         <Select name="is_published" defaultValue={assessment?.is_published ? 'on' : 'off'}>
           <option value="off">Save as draft</option>

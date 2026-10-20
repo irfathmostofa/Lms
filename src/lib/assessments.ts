@@ -16,7 +16,7 @@ export const ASSESSMENT_TYPES: AssessmentTypeConfig[] = [
   {
     value: 'homework',
     label: 'Homework',
-    description: 'Short take-home work. Choose online submit or offline collection before you assign it.',
+    description: 'Short take-home work. Track submitted or not submitted; this type does not take marks.',
     targetHint: 'Assign to a course, a batch, or both.',
     requireCourse: false,
     requireDue: true,
@@ -60,7 +60,7 @@ export const ASSESSMENT_TYPES: AssessmentTypeConfig[] = [
   {
     value: 'quiz',
     label: 'Quiz',
-    description: 'Traditional MCQ. Online students take it in the browser; offline students sit it on paper.',
+    description: 'Traditional MCQ. Score comes from the student attempt. Set a timer; add remarks after.',
     targetHint: 'Assign to the course or batch the quiz belongs to.',
     requireCourse: false,
     requireDue: false,

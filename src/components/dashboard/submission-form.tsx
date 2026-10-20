@@ -23,6 +23,7 @@ export function SubmissionForm({
   questions = [],
   existingContent,
   existingFileUrl,
+  timeLimitMinutes,
   readOnly,
 }: {
   assessmentId: string;
@@ -31,6 +32,7 @@ export function SubmissionForm({
   questions?: QuizPaperQuestion[];
   existingContent?: string | null;
   existingFileUrl?: string | null;
+  timeLimitMinutes?: number | null;
   readOnly?: boolean;
 }) {
   const [state, formAction] = useFormState(submitAssessmentAction, null);
@@ -61,7 +63,9 @@ export function SubmissionForm({
         </div>
       );
     }
-    return <McqPlayer assessmentId={assessmentId} questions={questions} />;
+    return (
+      <McqPlayer assessmentId={assessmentId} questions={questions} timeLimitMinutes={timeLimitMinutes} />
+    );
   }
 
   if (readOnly) {

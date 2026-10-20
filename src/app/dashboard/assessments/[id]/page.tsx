@@ -126,7 +126,15 @@ export default async function AssessmentDetailPage({ params }: { params: { id: s
     <>
       <PageHeader
         title={assessment.title}
-        description={`${config.label} · ${assessment.delivery_mode === 'offline' ? 'offline' : 'online'} · out of ${assessment.total_marks} marks · due ${formatDateTime(assessment.due_at)}`}
+        description={`${config.label} · ${assessment.delivery_mode === 'offline' ? 'offline' : 'online'}${
+          assessment.type === 'homework'
+            ? ' · submitted / not submitted'
+            : ` · out of ${assessment.total_marks} marks`
+        }${
+          assessment.type === 'quiz' && assessment.time_limit_minutes
+            ? ` · ${assessment.time_limit_minutes} min timer`
+            : ''
+        } · due ${formatDateTime(assessment.due_at)}`}
         action={
           <div className="flex flex-wrap items-center gap-2">
             <ButtonLink href={`/dashboard/assessments/${assessment.id}/edit`} size="sm" variant="outline">
@@ -148,8 +156,20 @@ export default async function AssessmentDetailPage({ params }: { params: { id: s
 
       <Card>
         <CardHeader
-          title="Marks sheet"
-          description={`${students.length} assigned students. Enter marks and remarks, then save all at once. Marks stay editable.`}
+          title={
+            assessment.type === 'homework'
+              ? 'Submission sheet'
+              : assessment.type === 'quiz'
+                ? 'Quiz remarks'
+                : 'Marks sheet'
+          }
+          description={
+            assessment.type === 'homework'
+              ? `${students.length} assigned students. Track submitted or not submitted.`
+              : assessment.type === 'quiz'
+                ? `${students.length} assigned students. Scores come from the attempt; add remarks only.`
+                : `${students.length} assigned students. Enter marks and remarks, then save all at once.`
+          }
         />
         <CardBody className="p-0">
           {students.length === 0 ? (
@@ -162,6 +182,7 @@ export default async function AssessmentDetailPage({ params }: { params: { id: s
           ) : (
             <MarksSheet
               assessmentId={params.id}
+              assessmentType={assessment.type}
               totalMarks={Number(assessment.total_marks) || 0}
               students={students}
             />

@@ -2,7 +2,8 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { saveMarksSheetAction } from '@/actions/dashboard';
-import { Badge, Button, Input, Textarea } from '@/components/ui';
+import { Badge, Button, Input, Select, Textarea } from '@/components/ui';
+import type { AssessmentType } from '@/lib/types';
 
 export interface MarksStudent {
   studentId: string;
@@ -16,25 +17,42 @@ export interface MarksStudent {
   feedback: string | null;
 }
 
-function SaveButton() {
+function SaveButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending}>
-      {pending ? 'Saving marks...' : 'Save all marks'}
+      {pending ? 'Saving...' : label}
     </Button>
   );
 }
 
+function statusTone(status: string | null): 'green' | 'amber' | 'slate' | 'red' {
+  if (status === 'graded' || status === 'submitted') return status === 'graded' ? 'green' : 'amber';
+  if (status === 'missing') return 'red';
+  return 'slate';
+}
+
 export function MarksSheet({
   assessmentId,
+  assessmentType,
   totalMarks,
   students,
 }: {
   assessmentId: string;
+  assessmentType: AssessmentType;
   totalMarks: number;
   students: MarksStudent[];
 }) {
   const [state, formAction] = useFormState(saveMarksSheetAction, null);
+  const isHomework = assessmentType === 'homework';
+  const isQuiz = assessmentType === 'quiz';
+  const takesMarks = assessmentType === 'assignment' || assessmentType === 'exam' || assessmentType === 'class_test';
+  const saveLabel = isHomework ? 'Save submission status' : isQuiz ? 'Save remarks' : 'Save all marks';
+  const hint = isHomework
+    ? 'Mark each student submitted or not submitted. Homework does not take marks.'
+    : isQuiz
+      ? 'Quiz marks come from the student attempt. Add remarks only.'
+      : `${students.length} assigned students. Marks stay editable after save.`;
 
   return (
     <form action={formAction} className="space-y-4">
@@ -59,7 +77,9 @@ export function MarksSheet({
               <th className="px-4 py-3 font-medium">Student</th>
               <th className="px-4 py-3 font-medium">Work</th>
               <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Marks / {totalMarks}</th>
+              {isHomework ? <th className="px-4 py-3 font-medium">Submitted</th> : null}
+              {takesMarks ? <th className="px-4 py-3 font-medium">Marks / {totalMarks}</th> : null}
+              {isQuiz ? <th className="px-4 py-3 font-medium">Score / {totalMarks}</th> : null}
               <th className="px-4 py-3 font-medium">Remarks</th>
             </tr>
           </thead>
@@ -84,26 +104,41 @@ export function MarksSheet({
                   ) : null}
                 </td>
                 <td className="px-4 py-3">
-                  <Badge
-                    tone={
-                      student.status === 'graded' ? 'green' : student.status === 'submitted' ? 'amber' : 'slate'
-                    }
-                  >
-                    {student.status ?? 'not marked'}
-                  </Badge>
+                  <Badge tone={statusTone(student.status)}>{student.status ?? 'not marked'}</Badge>
                 </td>
-                <td className="px-4 py-3">
-                  <Input
-                    name={`marks_${student.studentId}`}
-                    type="number"
-                    min="0"
-                    max={totalMarks}
-                    step="0.01"
-                    defaultValue={student.marks ?? ''}
-                    placeholder="Marks"
-                    className="w-28"
-                  />
-                </td>
+                {isHomework ? (
+                  <td className="px-4 py-3">
+                    <Select
+                      name={`completion_${student.studentId}`}
+                      defaultValue={student.status === 'submitted' || student.status === 'graded' ? 'submitted' : 'missing'}
+                      className="w-40"
+                    >
+                      <option value="submitted">Submitted</option>
+                      <option value="missing">Not submitted</option>
+                    </Select>
+                  </td>
+                ) : null}
+                {takesMarks ? (
+                  <td className="px-4 py-3">
+                    <Input
+                      name={`marks_${student.studentId}`}
+                      type="number"
+                      min="0"
+                      max={totalMarks}
+                      step="0.01"
+                      defaultValue={student.marks ?? ''}
+                      placeholder="Marks"
+                      className="w-28"
+                    />
+                  </td>
+                ) : null}
+                {isQuiz ? (
+                  <td className="px-4 py-3">
+                    <p className="text-sm font-medium text-slate-900">
+                      {student.marks == null ? 'Not attempted' : `${student.marks} / ${totalMarks}`}
+                    </p>
+                  </td>
+                ) : null}
                 <td className="px-4 py-3">
                   <Textarea
                     name={`remarks_${student.studentId}`}
@@ -119,8 +154,8 @@ export function MarksSheet({
       </div>
 
       <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-4">
-        <p className="text-xs text-slate-500">{students.length} assigned students. Marks stay editable after save.</p>
-        <SaveButton />
+        <p className="text-xs text-slate-500">{hint}</p>
+        <SaveButton label={saveLabel} />
       </div>
     </form>
   );

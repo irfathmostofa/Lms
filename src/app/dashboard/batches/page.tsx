@@ -4,6 +4,7 @@ import { getSessionContext } from '@/lib/auth';
 import { createBatchAction, createSessionAction } from '@/actions/dashboard';
 import {
   Badge,
+  ButtonLink,
   Card,
   CardBody,
   CardHeader,
@@ -179,6 +180,7 @@ export default async function BatchesPage() {
                   <Th>Schedule</Th>
                   <Th>Instructor</Th>
                   <Th>Sessions</Th>
+                  <Th />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -199,6 +201,11 @@ export default async function BatchesPage() {
                       <Td className="text-xs text-slate-500">{batch.schedule ?? '-'}</Td>
                       <Td>{batch.profiles?.full_name ?? '-'}</Td>
                       <Td>{count}</Td>
+                      <Td>
+                        <ButtonLink href={`/dashboard/attendance/${batch.id}`} size="sm" variant="secondary">
+                          Attendance
+                        </ButtonLink>
+                      </Td>
                     </tr>
                   );
                 })}

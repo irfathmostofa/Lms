@@ -176,6 +176,7 @@ export interface Assessment {
   total_marks: number;
   pass_marks: number | null;
   due_at: string | null;
+  time_limit_minutes: number | null;
   is_published: boolean;
   sort_order: number;
   created_by: string | null;

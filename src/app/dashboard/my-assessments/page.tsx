@@ -138,15 +138,34 @@ export default async function MyAssessmentsPage() {
                 />
                 <CardBody className="space-y-4">
                   <div className="flex flex-wrap gap-4 text-xs text-slate-500">
-                    <span>Total marks: {assessment.total_marks}</span>
-                    {assessment.pass_marks ? <span>Pass: {assessment.pass_marks}</span> : null}
+                    {assessment.type === 'homework' ? (
+                      <span>Tracked as submitted or not submitted</span>
+                    ) : (
+                      <span>Total marks: {assessment.total_marks}</span>
+                    )}
+                    {assessment.pass_marks && assessment.type !== 'homework' ? (
+                      <span>Pass: {assessment.pass_marks}</span>
+                    ) : null}
+                    {assessment.type === 'quiz' && assessment.time_limit_minutes ? (
+                      <span>Timer: {assessment.time_limit_minutes} min</span>
+                    ) : null}
                     <span>Due: {formatDateTime(assessment.due_at)}</span>
                   </div>
 
-                  {isGraded ? (
+                  {assessment.type === 'homework' && submission ? (
+                    <div className="rounded-lg bg-slate-50 p-4">
+                      <p className="text-sm font-semibold text-slate-800">
+                        {submission.status === 'missing' ? 'Not submitted' : 'Submitted'}
+                      </p>
+                      {submission.feedback ? <p className="mt-1 text-sm text-slate-600">{submission.feedback}</p> : null}
+                    </div>
+                  ) : null}
+
+                  {isGraded && assessment.type !== 'homework' ? (
                     <div className="rounded-lg bg-emerald-50 p-4">
                       <p className="text-sm font-semibold text-emerald-800">
-                        Marks: {submission?.marks ?? 0} / {assessment.total_marks}
+                        {assessment.type === 'quiz' ? 'Score' : 'Marks'}: {submission?.marks ?? 0} /{' '}
+                        {assessment.total_marks}
                       </p>
                       {submission?.feedback ? (
                         <p className="mt-1 text-sm text-emerald-700">{submission.feedback}</p>
@@ -161,6 +180,7 @@ export default async function MyAssessmentsPage() {
                     questions={questionsByAssessment.get(assessment.id) ?? []}
                     existingContent={submission?.content}
                     existingFileUrl={submission?.file_url}
+                    timeLimitMinutes={assessment.time_limit_minutes}
                     readOnly={isGraded}
                   />
                 </CardBody>

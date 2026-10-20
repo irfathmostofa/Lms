@@ -113,7 +113,13 @@ export default async function AssessmentsPage() {
                         </Badge>
                       </Td>
                       <Td className="text-xs text-slate-500">{targets.join(' / ') || '-'}</Td>
-                      <Td>{assessment.total_marks}</Td>
+                      <Td>
+                        {assessment.type === 'homework'
+                          ? 'Submitted / not'
+                          : assessment.type === 'quiz' && assessment.time_limit_minutes
+                            ? `${assessment.total_marks} · ${assessment.time_limit_minutes}m`
+                            : assessment.total_marks}
+                      </Td>
                       <Td className="text-xs text-slate-500">{formatDateTime(assessment.due_at)}</Td>
                       <Td>
                         <Badge tone={assessment.is_published ? 'green' : 'amber'}>
@@ -126,7 +132,11 @@ export default async function AssessmentsPage() {
                             href={`/dashboard/assessments/${assessment.id}`}
                             className="text-sm font-medium text-brand-600 hover:underline"
                           >
-                            Marks
+                            {assessment.type === 'homework'
+                              ? 'Submissions'
+                              : assessment.type === 'quiz'
+                                ? 'Remarks'
+                                : 'Marks'}
                           </Link>
                           <Link
                             href={`/dashboard/assessments/${assessment.id}/edit`}
