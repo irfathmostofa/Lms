@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getSessionContext } from '@/lib/auth';
 import { AssessmentCreateForm } from '@/components/dashboard/assessment-create-form';
+import { DeleteAssessmentButton } from '@/components/dashboard/delete-assessment-button';
 import {
   Badge,
   Card,
@@ -120,14 +121,21 @@ export default async function AssessmentsPage() {
                         </Badge>
                       </Td>
                       <Td>
-                        <Link
-                          href={`/dashboard/assessments/${assessment.id}`}
-                          className="text-sm font-medium text-brand-600 hover:underline"
-                        >
-                          {assessment.delivery_mode === 'offline' || config.studentOnlineMode === 'none'
-                            ? 'Marks'
-                            : 'Submissions'}
-                        </Link>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Link
+                            href={`/dashboard/assessments/${assessment.id}`}
+                            className="text-sm font-medium text-brand-600 hover:underline"
+                          >
+                            Marks
+                          </Link>
+                          <Link
+                            href={`/dashboard/assessments/${assessment.id}/edit`}
+                            className="text-sm font-medium text-brand-600 hover:underline"
+                          >
+                            Edit
+                          </Link>
+                          <DeleteAssessmentButton id={assessment.id} />
+                        </div>
                       </Td>
                     </tr>
                   );

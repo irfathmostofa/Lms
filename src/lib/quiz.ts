@@ -55,6 +55,35 @@ function normalizeQuizQuestion(item: unknown, index: number): QuizQuestion | nul
   };
 }
 
+export function quizQuestionFromRow(row: {
+  id?: string;
+  prompt: string;
+  option_a: string;
+  option_b: string;
+  option_c?: string | null;
+  option_d?: string | null;
+  option_e?: string | null;
+  correct_option: string;
+  marks?: number | null;
+  sort_order?: number | null;
+  explanation?: string | null;
+}, index = 0): QuizQuestion {
+  const correct = String(row.correct_option ?? 'A').toUpperCase();
+  return {
+    id: row.id,
+    prompt: row.prompt,
+    option_a: row.option_a,
+    option_b: row.option_b,
+    option_c: row.option_c ?? '',
+    option_d: row.option_d ?? '',
+    option_e: row.option_e ?? '',
+    correct_option: OPTION_KEYS.includes(correct as QuizOptionKey) ? (correct as QuizOptionKey) : 'A',
+    marks: Number(row.marks) > 0 ? Number(row.marks) : 1,
+    sort_order: Number.isFinite(Number(row.sort_order)) ? Number(row.sort_order) : index,
+    explanation: row.explanation ?? '',
+  };
+}
+
 export function quizQuestionRows(questions: QuizQuestion[], assessmentId: string) {
   return questions.map((question, index) => ({
     assessment_id: assessmentId,

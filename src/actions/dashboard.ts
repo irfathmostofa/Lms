@@ -694,17 +694,17 @@ export async function createAssessmentAction(_prev: unknown, formData: FormData)
   const dueAt = fromDateTimeLocal(optional(formData, 'due_at'));
   const delivery = resolveDelivery(type, str(formData, 'delivery_mode'));
   const questions = config.value === 'quiz' ? parseQuizQuestions(str(formData, 'quiz_questions')) : [];
-
-  if (!title) return { error: 'Enter a title.' };
-  if (!courseId && !batchId) {
-    return { error: config.requireCourse ? 'Choose a course.' : 'Choose a course or a batch.' };
-  }
-  if (config.requireCourse && !courseId) return { error: 'This type must be assigned to a course.' };
-  if (config.requireDue && !dueAt) return { error: 'Set a due date.' };
-  if (config.value === 'quiz' && questions.length === 0) return { error: 'Add at least one MCQ.' };
-  if (delivery === 'online' && config.studentOnlineMode !== 'mcq' && config.studentOnlineMode !== 'none' && !instructions) {
-    return { error: 'Add instructions for students.' };
-  }
+  const formError = assessmentFormError({
+    title,
+    config,
+    courseId,
+    batchId,
+    dueAt,
+    delivery,
+    questions,
+    instructions,
+  });
+  if (formError) return { error: formError };
 
   const { data, error } = await supabase
     .from('assessments')
@@ -734,6 +734,171 @@ export async function createAssessmentAction(_prev: unknown, formData: FormData)
   revalidatePath('/dashboard/assessments');
   revalidatePath('/dashboard/my-assessments');
   return { success: `${config.label} created as ${delivery}.` };
+}
+
+function assessmentFormError(form: {
+  title: string;
+  config: ReturnType<typeof assessmentTypeConfig>;
+  courseId: string | null;
+  batchId: string | null;
+  dueAt: string | null;
+  delivery: string;
+  questions: ReturnType<typeof parseQuizQuestions>;
+  instructions: string | null;
+}) {
+  if (!form.title) return 'Enter a title.';
+  if (!form.courseId && !form.batchId) {
+    return form.config.requireCourse ? 'Choose a course.' : 'Choose a course or a batch.';
+  }
+  if (form.config.requireCourse && !form.courseId) return 'This type must be assigned to a course.';
+  if (form.config.requireDue && !form.dueAt) return 'Set a due date.';
+  if (form.config.value === 'quiz' && form.questions.length === 0) return 'Add at least one MCQ.';
+  if (
+    form.delivery === 'online' &&
+    form.config.studentOnlineMode !== 'mcq' &&
+    form.config.studentOnlineMode !== 'none' &&
+    !form.instructions
+  ) {
+    return 'Add instructions for students.';
+  }
+  return null;
+}
+
+export async function updateAssessmentAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin', 'instructor']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  if (!id) return { error: 'Missing assessment.' };
+
+  const title = str(formData, 'title');
+  const type = str(formData, 'type') || 'homework';
+  const config = assessmentTypeConfig(type);
+  const courseId = optional(formData, 'course_id');
+  const batchId = optional(formData, 'batch_id');
+  const instructions = optional(formData, 'instructions');
+  const dueAt = fromDateTimeLocal(optional(formData, 'due_at'));
+  const delivery = resolveDelivery(type, str(formData, 'delivery_mode'));
+  const questions = config.value === 'quiz' ? parseQuizQuestions(str(formData, 'quiz_questions')) : [];
+  const formError = assessmentFormError({
+    title,
+    config,
+    courseId,
+    batchId,
+    dueAt,
+    delivery,
+    questions,
+    instructions,
+  });
+  if (formError) return { error: formError };
+
+  const { error } = await supabase
+    .from('assessments')
+    .update({
+      title,
+      course_id: courseId,
+      batch_id: batchId,
+      type: config.value,
+      delivery_mode: delivery,
+      instructions,
+      total_marks: config.value === 'quiz' ? quizTotalMarks(questions) : num(formData, 'total_marks', 100),
+      pass_marks: str(formData, 'pass_marks') ? num(formData, 'pass_marks') : null,
+      due_at: dueAt,
+      is_published: str(formData, 'is_published') === 'on',
+    })
+    .eq('id', id);
+
+  if (error) return { error: error.message };
+
+  const { error: deleteQuestionsError } = await supabase.from('quiz_questions').delete().eq('assessment_id', id);
+  if (deleteQuestionsError) return { error: deleteQuestionsError.message };
+
+  if (config.value === 'quiz') {
+    const { error: questionError } = await supabase.from('quiz_questions').insert(quizQuestionRows(questions, id));
+    if (questionError) return { error: questionError.message };
+  }
+
+  revalidatePath('/dashboard/assessments');
+  revalidatePath(`/dashboard/assessments/${id}`);
+  revalidatePath(`/dashboard/assessments/${id}/edit`);
+  revalidatePath('/dashboard/my-assessments');
+  return { success: `${config.label} updated.` };
+}
+
+export async function deleteAssessmentAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin', 'instructor']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  if (!id) return { error: 'Missing assessment.' };
+  const { error } = await supabase.from('assessments').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidatePath('/dashboard/assessments');
+  revalidatePath('/dashboard/my-assessments');
+  redirect('/dashboard/assessments');
+}
+
+export async function saveMarksSheetAction(_prev: unknown, formData: FormData) {
+  const ctx = await requireRole(['admin', 'instructor']);
+  const supabase = createClient();
+  const assessmentId = str(formData, 'assessment_id');
+  if (!assessmentId) return { error: 'Missing assessment.' };
+
+  const { data: assessment, error: loadError } = await supabase
+    .from('assessments')
+    .select('id, total_marks')
+    .eq('id', assessmentId)
+    .maybeSingle();
+  if (loadError) return { error: loadError.message };
+  if (!assessment) return { error: 'Assessment not found.' };
+
+  const studentIds = Array.from(
+    new Set(
+      formData
+        .getAll('student_ids')
+        .map((value) => (typeof value === 'string' ? value.trim() : ''))
+        .filter(Boolean),
+    ),
+  );
+  if (studentIds.length === 0) return { error: 'No assigned students to mark.' };
+
+  const totalMarks = Number(assessment.total_marks) || 0;
+  const now = new Date().toISOString();
+  const rows: {
+    assessment_id: string;
+    student_id: string;
+    marks: number;
+    feedback: string | null;
+    status: 'graded';
+    graded_at: string;
+    graded_by: string;
+  }[] = [];
+
+  for (const studentId of studentIds) {
+    const raw = str(formData, `marks_${studentId}`);
+    if (raw === '') continue;
+    const marks = Number(raw);
+    if (!Number.isFinite(marks)) return { error: 'Enter valid marks.' };
+    if (marks < 0) return { error: 'Marks cannot be negative.' };
+    if (totalMarks > 0 && marks > totalMarks) return { error: `Marks cannot exceed ${totalMarks}.` };
+    rows.push({
+      assessment_id: assessmentId,
+      student_id: studentId,
+      marks,
+      feedback: optional(formData, `remarks_${studentId}`),
+      status: 'graded',
+      graded_at: now,
+      graded_by: ctx.userId,
+    });
+  }
+
+  if (rows.length === 0) return { error: 'Enter at least one mark.' };
+
+  const { error } = await supabase.from('submissions').upsert(rows, { onConflict: 'assessment_id,student_id' });
+  if (error) return { error: error.message };
+
+  revalidatePath('/dashboard/assessments');
+  revalidatePath(`/dashboard/assessments/${assessmentId}`);
+  revalidatePath('/dashboard/my-assessments');
+  return { success: `Saved marks for ${rows.length} student${rows.length === 1 ? '' : 's'}.` };
 }
 
 export async function gradeSubmissionAction(_prev: unknown, formData: FormData) {
