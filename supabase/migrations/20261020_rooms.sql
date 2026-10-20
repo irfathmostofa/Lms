@@ -30,3 +30,6 @@ drop policy if exists rooms_write on public.rooms;
 create policy rooms_write on public.rooms
   for all using ((select public.is_admin()))
   with check ((select public.is_admin()));
+
+grant select, insert, update, delete on public.rooms to authenticated;
+grant select, insert, update, delete on public.rooms to service_role;

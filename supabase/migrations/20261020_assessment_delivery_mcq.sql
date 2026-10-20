@@ -35,6 +35,9 @@ create policy quiz_questions_staff on public.quiz_questions
   for all using ((select public.is_staff()))
   with check ((select public.is_instructor()) or (select public.is_editor()));
 
+grant select, insert, update, delete on public.quiz_questions to authenticated;
+grant select, insert, update, delete on public.quiz_questions to service_role;
+
 -- Students never read correct answers directly.
 create or replace function public.get_quiz_paper(p_assessment uuid)
 returns table (

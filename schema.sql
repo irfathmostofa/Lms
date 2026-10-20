@@ -1626,7 +1626,14 @@ grant select on public.categories,
                 public.public_lesson_outline,
                 public.products,
                 public.lookups,
-                public.settings
+                public.settings,
+                public.hero_slides,
+                public.site_notices,
+                public.about_page,
+                public.team_members,
+                public.partners,
+                public.testimonials,
+                public.page_sections
   to anon;
 grant execute on function public.get_lookups(text),
                         public.get_public_settings(),

@@ -54,6 +54,9 @@ drop policy if exists course_access_editor on public.course_access;
 create policy course_access_editor on public.course_access
   for all using ((select public.is_editor())) with check ((select public.is_editor()));
 
+grant select, insert, update, delete on public.course_access to authenticated;
+grant select, insert, update, delete on public.course_access to service_role;
+
 drop policy if exists courses_select_published on public.courses;
 create policy courses_select_published on public.courses
   for select using (

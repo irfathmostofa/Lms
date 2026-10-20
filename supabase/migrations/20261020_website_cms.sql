@@ -162,3 +162,7 @@ select
   'Make high-quality teaching accessible, whether you learn from home or in a classroom.',
   'A trusted place where every learner can grow from first lesson to finished skill.'
 where not exists (select 1 from public.about_page);
+
+grant select on public.site_notices, public.about_page, public.team_members, public.partners, public.testimonials, public.page_sections to anon;
+grant select, insert, update, delete on public.site_notices, public.about_page, public.team_members, public.partners, public.testimonials, public.page_sections to authenticated;
+grant select, insert, update, delete on public.site_notices, public.about_page, public.team_members, public.partners, public.testimonials, public.page_sections to service_role;

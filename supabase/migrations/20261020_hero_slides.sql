@@ -30,3 +30,7 @@ create policy hero_slides_read on public.hero_slides
 drop policy if exists hero_slides_admin on public.hero_slides;
 create policy hero_slides_admin on public.hero_slides
   for all using ((select public.is_admin())) with check ((select public.is_admin()));
+
+grant select on public.hero_slides to anon;
+grant select, insert, update, delete on public.hero_slides to authenticated;
+grant select, insert, update, delete on public.hero_slides to service_role;
