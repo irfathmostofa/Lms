@@ -82,7 +82,7 @@ export function HomeStats({ items }: { items: StatItem[] }) {
       <div className="mx-auto max-w-6xl px-6">
         <div
           ref={containerRef}
-          className="-mt-12 grid gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-xl shadow-slate-900/5 sm:grid-cols-2 lg:grid-cols-4"
+          className="mt-6 grid gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 shadow-xl shadow-slate-900/5 sm:grid-cols-2 lg:-mt-12 lg:grid-cols-4"
         >
           {items.map((item) => (
             <div key={item.label} className="bg-white px-6 py-7">

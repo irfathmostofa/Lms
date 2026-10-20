@@ -3,6 +3,9 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     allowedHosts: ['.monkeycode-ai.live'],
+    serverActions: {
+      bodySizeLimit: '6mb',
+    },
     // Keep prefetched/RSC payloads in the browser router cache so repeat and
     // back/forward navigations render instantly instead of refetching.
     staleTimes: {

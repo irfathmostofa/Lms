@@ -86,7 +86,12 @@ export async function optimizeImageFile(
 }
 
 export function assignFileToInput(input: HTMLInputElement, file: File) {
-  const transfer = new DataTransfer();
-  transfer.items.add(file);
-  input.files = transfer.files;
+  try {
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    return Boolean(input.files && input.files.length > 0);
+  } catch {
+    return false;
+  }
 }

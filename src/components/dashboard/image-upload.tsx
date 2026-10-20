@@ -7,7 +7,7 @@ import { assignFileToInput, optimizeImageFile } from '@/lib/optimize-image';
 
 export function ImageUpload({
   label = 'Upload image',
-  hint = 'JPG, PNG or WebP up to 5 MB. Compressed to 75% quality before upload.',
+  hint = 'JPG, PNG, WebP or GIF up to 5 MB. Compressed to 75% quality before upload.',
   fileName = 'image_file',
   urlName,
   defaultUrl = '',
@@ -28,8 +28,10 @@ export function ImageUpload({
   maxHeight?: number;
   previewClassName?: string;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const pickerRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [localPreview, setLocalPreview] = useState('');
+  const [hasFile, setHasFile] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const preview = localPreview || previewUrl || defaultUrl;
@@ -37,39 +39,61 @@ export function ImageUpload({
   async function onFileChange(file: File | undefined) {
     setError(null);
     setStatus(null);
-    if (!file || !inputRef.current) return;
+    setHasFile(false);
+    if (!file || !fileRef.current) return;
 
+    let nextFile = file;
     try {
       setStatus('Optimizing image...');
-      const optimized = await optimizeImageFile(file, { maxWidth, maxHeight });
-      assignFileToInput(inputRef.current, optimized);
-      const url = URL.createObjectURL(optimized);
-      setLocalPreview(url);
-      const saved = Math.max(0, file.size - optimized.size);
+      nextFile = await optimizeImageFile(file, { maxWidth, maxHeight });
+      const saved = Math.max(0, file.size - nextFile.size);
       setStatus(
         saved > 0
           ? `Optimized to 75% quality · saved ${Math.round(saved / 1024)} KB`
           : 'Optimized to 75% quality',
       );
     } catch (caught) {
-      if (inputRef.current) inputRef.current.value = '';
-      setError(caught instanceof ImageOptimizeError ? caught.message : 'The image could not be optimized.');
-      setStatus(null);
+      if (file.type.startsWith('image/') && file.size > 0) {
+        nextFile = file;
+        setStatus('Using the original image.');
+      } else {
+        if (pickerRef.current) pickerRef.current.value = '';
+        setError(caught instanceof ImageOptimizeError ? caught.message : 'The image could not be optimized.');
+        setStatus(null);
+        return;
+      }
     }
+
+    if (!assignFileToInput(fileRef.current, nextFile)) {
+      if (pickerRef.current) pickerRef.current.value = '';
+      setError('This browser could not attach the image. Try another file or browser.');
+      setStatus(null);
+      return;
+    }
+
+    setHasFile(true);
+    setLocalPreview(URL.createObjectURL(nextFile));
   }
 
   return (
     <div className="space-y-3">
       <Field label={label} hint={hint}>
         <Input
-          ref={inputRef}
-          name={fileName}
+          ref={pickerRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp"
-          required={required && !preview}
+          accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
           onChange={(event) => onFileChange(event.target.files?.[0])}
         />
       </Field>
+      <input
+        ref={fileRef}
+        type="file"
+        name={fileName}
+        className="hidden"
+        tabIndex={-1}
+        aria-hidden="true"
+        required={required && !defaultUrl && !hasFile}
+      />
       {urlName ? (
         <input type="hidden" name={urlName} value={localPreview.startsWith('blob:') ? defaultUrl : preview} />
       ) : null}

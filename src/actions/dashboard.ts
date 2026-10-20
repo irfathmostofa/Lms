@@ -9,7 +9,7 @@ import { sanitizeRichText } from '@/lib/rich-text';
 import { fromDateTimeLocal, slugify, youtubeIdFromInput } from '@/lib/utils';
 import { assessmentTypeConfig, resolveDelivery } from '@/lib/assessments';
 import { parseQuizQuestions, quizQuestionRows, quizTotalMarks } from '@/lib/quiz';
-import { isAllowedImage, MAX_IMAGE_BYTES } from '@/lib/image';
+import { MAX_IMAGE_BYTES } from '@/lib/image';
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -50,25 +50,37 @@ async function resolveAuthorName(
   return data?.full_name ?? data?.email ?? null;
 }
 
+function isUploadableImage(file: File) {
+  if (file.size <= 0 || file.size > MAX_IMAGE_BYTES) return false;
+  if (file.type.startsWith('image/')) return true;
+  return /\.(jpe?g|png|webp|gif)$/i.test(file.name);
+}
+
 async function uploadPublicImage(
   supabase: ReturnType<typeof createClient>,
   file: File,
   folder: string,
 ) {
-  if (!isAllowedImage(file) || file.size > MAX_IMAGE_BYTES) {
+  if (!isUploadableImage(file)) {
     return { error: 'image' as const, url: undefined };
   }
 
-  const extension = (file.name.split('.').pop() ?? 'webp').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const path = `${folder}/${Date.now()}.${extension || 'webp'}`;
+  const extension = (file.name.split('.').pop() ?? 'webp').toLowerCase().replace(/[^a-z0-9]/g, '') || 'webp';
+  const contentType = file.type || (extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : `image/${extension}`);
+  const path = `${folder}/${Date.now()}.${extension}`;
   const { error } = await supabase.storage.from('thumbnails').upload(path, file, {
-    contentType: file.type || 'image/webp',
+    contentType,
     upsert: true,
   });
-  if (error) return { error: 'upload' as const, url: undefined };
+  if (error) return { error: 'upload' as const, url: undefined, message: error.message };
 
   const { data } = supabase.storage.from('thumbnails').getPublicUrl(path);
   return { error: null, url: data.publicUrl };
+}
+
+function imageUploadError(uploaded: { error?: string | null; message?: string }) {
+  if (uploaded.error === 'image') return 'Use a JPG, PNG, WebP or GIF image up to 5 MB.';
+  return uploaded.message || 'The image could not be uploaded.';
 }
 
 async function uploadThumbnail(
@@ -1071,7 +1083,7 @@ export async function createHeroSlideAction(_prev: unknown, formData: FormData) 
 
   const uploaded = await uploadPublicImage(supabase, file, 'hero');
   if (uploaded.error || !uploaded.url) {
-    return { error: uploaded.error === 'image' ? 'Use a JPG, PNG or WebP image up to 5 MB.' : 'The image could not be uploaded.' };
+    return { error: imageUploadError(uploaded) };
   }
 
   const { error } = await supabase.from('hero_slides').insert({
@@ -1116,7 +1128,7 @@ export async function updateHeroSlideAction(_prev: unknown, formData: FormData) 
   if (file instanceof File && file.size > 0) {
     const uploaded = await uploadPublicImage(supabase, file, 'hero');
     if (uploaded.error || !uploaded.url) {
-      return { error: uploaded.error === 'image' ? 'Use a JPG, PNG or WebP image up to 5 MB.' : 'The image could not be uploaded.' };
+      return { error: imageUploadError(uploaded) };
     }
     patch.image_url = uploaded.url;
   }
@@ -1154,7 +1166,7 @@ async function uploadOptionalImage(formData: FormData, field: string, folder: st
   if (file instanceof File && file.size > 0) {
     const uploaded = await uploadPublicImage(supabase, file, folder);
     if (uploaded.error || !uploaded.url) {
-      return { error: uploaded.error === 'image' ? 'Use a JPG, PNG or WebP image up to 5 MB.' : 'The image could not be uploaded.', url: null };
+      return { error: imageUploadError(uploaded), url: null };
     }
     return { error: null, url: uploaded.url };
   }
