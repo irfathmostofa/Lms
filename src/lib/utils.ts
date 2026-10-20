@@ -79,6 +79,14 @@ export function toDateTimeLocal(value: string | null | undefined) {
   return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }
 
+export function fromDateTimeLocal(value: string | null | undefined) {
+  const input = (value ?? '').trim();
+  if (!input) return null;
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
 export function splitList(value: string | null | undefined) {
   return (value ?? '')
     .split(/\r?\n/)

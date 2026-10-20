@@ -95,25 +95,33 @@ export function CurriculumItemForm({
         ) : (
           <>
             <div className="sm:col-span-2">
-              <Field label="Instructions">
+              <Field
+                label={itemType === 'quiz' ? 'Questions' : 'Assignment brief'}
+                hint={
+                  itemType === 'quiz'
+                    ? 'Students answer these questions in a text box.'
+                    : 'Students upload a file against this brief.'
+                }
+              >
                 <Textarea
                   name="instructions"
+                  required
                   placeholder={
                     itemType === 'quiz'
-                      ? 'Explain how the quiz works and how it is scored.'
-                      : 'Describe the assignment and submission requirements.'
+                      ? '1. Question one\n2. Question two'
+                      : 'Describe the file students must upload and how it is marked.'
                   }
                 />
               </Field>
             </div>
             <Field label="Total marks">
-              <Input name="total_marks" type="number" min="0" step="0.01" defaultValue="100" />
+              <Input name="total_marks" type="number" min="0" step="0.01" defaultValue="100" required />
             </Field>
             <Field label="Pass marks">
               <Input name="pass_marks" type="number" min="0" step="0.01" />
             </Field>
-            <Field label="Due date">
-              <Input name="due_at" type="datetime-local" />
+            <Field label={itemType === 'assignment' ? 'Due date' : 'Due date (optional)'}>
+              <Input name="due_at" type="datetime-local" required={itemType === 'assignment'} />
             </Field>
             <Field label="Publish now">
               <Select name="is_published" defaultValue="off">

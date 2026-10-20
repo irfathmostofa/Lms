@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
 import { CACHE_TAGS } from '@/lib/data';
 import { sanitizeRichText } from '@/lib/rich-text';
-import { slugify, youtubeIdFromInput } from '@/lib/utils';
+import { fromDateTimeLocal, slugify, youtubeIdFromInput } from '@/lib/utils';
+import { assessmentTypeConfig } from '@/lib/assessments';
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -626,10 +627,10 @@ export async function createCurriculumItemAction(formData: FormData) {
       section_id: sectionId,
       title,
       type: itemType,
-      instructions: optional(formData, 'instructions'),
-      total_marks: num(formData, 'total_marks', 100),
-      pass_marks: str(formData, 'pass_marks') ? num(formData, 'pass_marks') : null,
-      due_at: optional(formData, 'due_at'),
+       instructions: optional(formData, 'instructions'),
+        total_marks: num(formData, 'total_marks', 100),
+        pass_marks: str(formData, 'pass_marks') ? num(formData, 'pass_marks') : null,
+        due_at: fromDateTimeLocal(optional(formData, 'due_at')),
       sort_order: num(formData, 'sort_order'),
       is_published: str(formData, 'is_published') === 'on',
       created_by: ctx.userId,
@@ -668,36 +669,50 @@ export async function deleteLessonAction(formData: FormData) {
 }
 
 // Assessments ---------------------------------------------------------------
-export async function createAssessmentAction(formData: FormData) {
+export async function createAssessmentAction(_prev: unknown, formData: FormData) {
   const ctx = await requireRole(['admin', 'instructor']);
   const supabase = createClient();
   const title = str(formData, 'title');
+  const type = str(formData, 'type') || 'homework';
+  const config = assessmentTypeConfig(type);
   const courseId = optional(formData, 'course_id');
   const batchId = optional(formData, 'batch_id');
-  if (!title || (!courseId && !batchId)) return;
+  const instructions = optional(formData, 'instructions');
+  const dueAt = fromDateTimeLocal(optional(formData, 'due_at'));
 
-  await supabase.from('assessments').insert({
+  if (!title) return { error: 'Enter a title.' };
+  if (!courseId && !batchId) {
+    return { error: config.requireCourse ? 'Choose a course.' : 'Choose a course or a batch.' };
+  }
+  if (config.requireCourse && !courseId) return { error: 'This type must be assigned to a course.' };
+  if (config.requireDue && !dueAt) return { error: 'Set a due date.' };
+  if (config.requireInstructions && !instructions) return { error: 'Add instructions for students.' };
+
+  const { error } = await supabase.from('assessments').insert({
     title,
     course_id: courseId,
     batch_id: batchId,
-    type: str(formData, 'type') || 'homework',
-    instructions: optional(formData, 'instructions'),
+    type: config.value,
+    instructions,
     total_marks: num(formData, 'total_marks', 100),
     pass_marks: str(formData, 'pass_marks') ? num(formData, 'pass_marks') : null,
-    due_at: optional(formData, 'due_at'),
+    due_at: dueAt,
     is_published: str(formData, 'is_published') === 'on',
     created_by: ctx.userId,
   });
 
+  if (error) return { error: error.message };
   revalidatePath('/dashboard/assessments');
+  revalidatePath('/dashboard/my-assessments');
+  return { success: `${config.label} created.` };
 }
 
-export async function gradeSubmissionAction(formData: FormData) {
+export async function gradeSubmissionAction(_prev: unknown, formData: FormData) {
   const ctx = await requireRole(['admin', 'instructor']);
   const supabase = createClient();
   const id = str(formData, 'id');
-  if (!id) return;
-  await supabase
+  if (!id) return { error: 'Missing submission.' };
+  const { error } = await supabase
     .from('submissions')
     .update({
       marks: num(formData, 'marks'),
@@ -707,7 +722,11 @@ export async function gradeSubmissionAction(formData: FormData) {
       graded_by: ctx.userId,
     })
     .eq('id', id);
+  if (error) return { error: error.message };
   revalidatePath('/dashboard/assessments');
+  revalidatePath(`/dashboard/assessments/${str(formData, 'assessment_id')}`);
+  revalidatePath('/dashboard/my-assessments');
+  return { success: 'Grade saved.' };
 }
 
 // Payments ------------------------------------------------------------------

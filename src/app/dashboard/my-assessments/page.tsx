@@ -10,6 +10,7 @@ import {
   StatCard,
 } from '@/components/ui';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
+import { assessmentTypeConfig } from '@/lib/assessments';
 import { formatDateTime } from '@/lib/utils';
 import type { Assessment } from '@/lib/types';
 
@@ -24,11 +25,12 @@ interface SubmissionRow {
   feedback: string | null;
 }
 
-const typeTone: Record<string, 'blue' | 'violet' | 'amber' | 'green'> = {
+const typeTone: Record<string, 'blue' | 'violet' | 'amber' | 'green' | 'slate'> = {
   homework: 'blue',
   class_test: 'violet',
   assignment: 'amber',
   exam: 'green',
+  quiz: 'slate',
 };
 
 export default async function MyAssessmentsPage() {
@@ -53,6 +55,8 @@ export default async function MyAssessmentsPage() {
       .eq('status', 'active'),
   ]);
 
+  const fetchError =
+    assessmentsRes.error?.message ?? submissionsRes.error?.message ?? enrollmentsRes.error?.message;
   const assessments = (assessmentsRes.data as Assessment[]) ?? [];
   const submissions = (submissionsRes.data as SubmissionRow[]) ?? [];
   const enrollments = (enrollmentsRes.data as { course_id: string; batch_id: string | null }[]) ?? [];
@@ -61,8 +65,11 @@ export default async function MyAssessmentsPage() {
   const enrolledBatchIds = new Set(enrollments.map((e) => e.batch_id).filter(Boolean) as string[]);
 
   const relevant = assessments.filter((assessment) => {
-    if (assessment.course_id && enrolledCourseIds.has(assessment.course_id)) return true;
-    if (assessment.batch_id && enrolledBatchIds.has(assessment.batch_id)) return true;
+    const courseMatch = assessment.course_id ? enrolledCourseIds.has(assessment.course_id) : false;
+    const batchMatch = assessment.batch_id ? enrolledBatchIds.has(assessment.batch_id) : false;
+    if (assessment.course_id && assessment.batch_id) return courseMatch || batchMatch;
+    if (assessment.course_id) return courseMatch;
+    if (assessment.batch_id) return batchMatch;
     return false;
   });
 
@@ -79,6 +86,12 @@ export default async function MyAssessmentsPage() {
         <StatCard label="Graded" value={graded} />
       </div>
 
+      {fetchError ? (
+        <p className="mb-6 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          Assessments could not be loaded: {fetchError}
+        </p>
+      ) : null}
+
       {relevant.length === 0 ? (
         <EmptyState
           title="No assessments yet"
@@ -89,6 +102,7 @@ export default async function MyAssessmentsPage() {
           {relevant.map((assessment) => {
             const submission = submissionByAssessment.get(assessment.id);
             const isGraded = submission?.status === 'graded';
+            const config = assessmentTypeConfig(assessment.type);
             return (
               <Card key={assessment.id}>
                 <CardHeader
@@ -97,7 +111,7 @@ export default async function MyAssessmentsPage() {
                   action={
                     <div className="flex items-center gap-2">
                       <Badge tone={typeTone[assessment.type] ?? 'slate'}>
-                        {assessment.type.replace('_', ' ')}
+                        {config.label}
                       </Badge>
                       {submission ? (
                         <Badge tone={isGraded ? 'green' : 'amber'}>
@@ -127,6 +141,7 @@ export default async function MyAssessmentsPage() {
 
                   <SubmissionForm
                     assessmentId={assessment.id}
+                    type={assessment.type}
                     existingContent={submission?.content}
                     existingFileUrl={submission?.file_url}
                     readOnly={isGraded}

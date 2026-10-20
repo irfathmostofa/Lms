@@ -1,21 +1,19 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getSessionContext } from '@/lib/auth';
-import { gradeSubmissionAction } from '@/actions/dashboard';
+import { GradeForm } from '@/components/dashboard/grade-form';
 import {
   Badge,
-  Button,
   Card,
   CardBody,
   CardHeader,
   EmptyState,
-  Input,
   PageHeader,
   Table,
   Td,
   Th,
-  Textarea,
 } from '@/components/ui';
+import { assessmentTypeConfig } from '@/lib/assessments';
 import { formatDateTime } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -44,20 +42,26 @@ export default async function AssessmentDetailPage({ params }: { params: { id: s
     .maybeSingle();
   if (!assessment) notFound();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('submissions')
     .select('id, content, file_url, status, marks, feedback, submitted_at, profiles!submissions_student_id_fkey(full_name, email)')
     .eq('assessment_id', params.id)
     .order('submitted_at', { ascending: false });
 
   const submissions = (data as unknown as SubmissionRow[]) ?? [];
+  const config = assessmentTypeConfig(assessment.type);
 
   return (
     <>
       <PageHeader
         title={assessment.title}
-        description={`${assessment.type.replace('_', ' ')} - out of ${assessment.total_marks} marks`}
+        description={`${config.label} - out of ${assessment.total_marks} marks`}
       />
+      {error ? (
+        <p className="mb-6 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          Submissions could not be loaded: {error.message}
+        </p>
+      ) : null}
 
       <Card>
         <CardHeader title="Submissions" description={`${submissions.length} received`} />
@@ -106,28 +110,14 @@ export default async function AssessmentDetailPage({ params }: { params: { id: s
                         {submission.status}
                       </Badge>
                     </Td>
-                    <Td>
-                      <form action={gradeSubmissionAction} className="w-48 space-y-2">
-                        <input type="hidden" name="id" value={submission.id} />
-                        <Input
-                          name="marks"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          defaultValue={submission.marks ?? ''}
-                          placeholder="Marks"
-                        />
-                        <Textarea
-                          name="feedback"
-                          className="min-h-[40px]"
-                          defaultValue={submission.feedback ?? ''}
-                          placeholder="Feedback"
-                        />
-                        <Button type="submit" size="sm">
-                          Save
-                        </Button>
-                      </form>
-                    </Td>
+                     <Td>
+                       <GradeForm
+                         id={submission.id}
+                         assessmentId={params.id}
+                         marks={submission.marks}
+                         feedback={submission.feedback}
+                       />
+                     </Td>
                   </tr>
                 ))}
               </tbody>

@@ -1259,10 +1259,10 @@ create policy assessments_read on public.assessments
 create policy assessments_write on public.assessments
   for all using (
     (select public.is_editor())
-    or (course_id is not null and (select public.is_instructor_of(course_id)))
+    or (select public.is_instructor())
   ) with check (
     (select public.is_editor())
-    or (course_id is not null and (select public.is_instructor_of(course_id)))
+    or (select public.is_instructor())
   );
 
 create policy submissions_read on public.submissions

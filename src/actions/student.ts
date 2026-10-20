@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireUser } from '@/lib/auth';
+import { assessmentTypeConfig } from '@/lib/assessments';
 
 function str(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -61,12 +62,32 @@ export async function submitAssessmentAction(_prev: unknown, formData: FormData)
   const assessmentId = str(formData, 'assessment_id');
   if (!assessmentId) return { error: 'Missing assessment.' };
 
+  const { data: assessment, error: loadError } = await supabase
+    .from('assessments')
+    .select('id, type, is_published')
+    .eq('id', assessmentId)
+    .maybeSingle();
+
+  if (loadError) return { error: loadError.message };
+  if (!assessment?.is_published) return { error: 'This assessment is not available.' };
+
+  const config = assessmentTypeConfig(assessment.type);
+  if (config.studentMode === 'in_person') {
+    return { error: `${config.label} is taken in person. You cannot submit online.` };
+  }
+
+  const content = str(formData, 'content') || null;
+  const fileUrl = str(formData, 'file_url') || null;
+  if (config.studentMode === 'quiz' && !content) return { error: 'Enter your answers.' };
+  if (config.studentMode === 'text_file' && !content) return { error: 'Enter your answer.' };
+  if (config.studentMode === 'file' && !fileUrl) return { error: 'Add a file URL for this assignment.' };
+
   const { error } = await supabase.from('submissions').upsert(
     {
       assessment_id: assessmentId,
       student_id: ctx.userId,
-      content: str(formData, 'content') || null,
-      file_url: str(formData, 'file_url') || null,
+      content,
+      file_url: fileUrl,
       status: 'submitted',
       submitted_at: new Date().toISOString(),
     },
