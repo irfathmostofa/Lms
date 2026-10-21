@@ -434,7 +434,7 @@ export function SecureYouTubePlayer({
             fill
             sizes="(max-width: 1024px) 100vw, 66vw"
             draggable={false}
-            className="object-cover opacity-80 transition group-hover:opacity-100"
+            className="object-contain opacity-80 transition group-hover:opacity-100"
           />
           <span className="absolute inset-0 flex items-center justify-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-brand-700 shadow-lg transition group-hover:scale-105">
@@ -460,9 +460,14 @@ export function SecureYouTubePlayer({
       onContextMenu={(event) => event.preventDefault()}
       onDragStart={(event) => event.preventDefault()}
     >
-      <div className="pointer-events-none absolute inset-[-18%_-8%] overflow-hidden">
-        <div ref={hostRef} aria-hidden="true" className="h-full w-full" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden bg-black">
+        <div
+          ref={hostRef}
+          aria-hidden="true"
+          className="absolute inset-x-0 -top-12 bottom-0 [&_iframe]:h-full [&_iframe]:w-full [&_iframe]:border-0"
+        />
       </div>
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/70 to-transparent" />
 
       <button
         type="button"
