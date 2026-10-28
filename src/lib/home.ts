@@ -537,6 +537,90 @@ function toCount(value: number | string | undefined) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
+export interface PublishedCourseDetail {
+  course: {
+    id: string;
+    category_id: string | null;
+    title: string;
+    slug: string;
+    summary: string | null;
+    description: string | null;
+    thumbnail_url: string | null;
+    promo_video_id: string | null;
+    mode: string;
+    status: string;
+    visibility: string;
+    author_name: string | null;
+    tags: string[] | null;
+    level: string | null;
+    language: string | null;
+    price: number;
+    discount_price: number | null;
+    duration_hours: number | null;
+    duration_label: string | null;
+    learning_outcomes: string | null;
+    target_audience: string | null;
+    materials_included: string | null;
+    requirements: string | null;
+    total_lessons: number;
+    is_featured: boolean;
+    published_at: string | null;
+  };
+  sections: { id: string; title: string; summary: string | null }[];
+  outline: {
+    id: string;
+    section_id: string;
+    title: string;
+    type: string;
+    duration_min: number | null;
+    is_preview: boolean;
+  }[];
+  category: { name: string; slug: string } | null;
+}
+
+export const getPublishedCourseDetail = unstable_cache(
+  async function getPublishedCourseDetail(slug: string): Promise<PublishedCourseDetail | null> {
+    if (!hasSupabaseEnv()) return null;
+    try {
+      const supabase = createPublicClient();
+      const { data: course } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('slug', slug)
+        .eq('status', 'published')
+        .maybeSingle();
+      if (!course) return null;
+
+      const [sectionsRes, outlineRes, categoryRes] = await Promise.all([
+        supabase
+          .from('course_sections')
+          .select('id, title, summary')
+          .eq('course_id', course.id)
+          .order('sort_order'),
+        supabase
+          .from('public_lesson_outline')
+          .select('id, section_id, title, type, duration_min, is_preview')
+          .eq('course_id', course.id)
+          .order('sort_order'),
+        course.category_id
+          ? supabase.from('categories').select('name, slug').eq('id', course.category_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
+
+      return {
+        course,
+        sections: sectionsRes.data ?? [],
+        outline: outlineRes.data ?? [],
+        category: categoryRes.data ?? null,
+      };
+    } catch {
+      return null;
+    }
+  },
+  ['catalog:course-detail'],
+  { revalidate: 300, tags: [CACHE_TAGS.catalog] },
+);
+
 export const getCatalogCourses = unstable_cache(
   async function getCatalogCourses() {
     if (!hasSupabaseEnv()) return [];

@@ -9,7 +9,7 @@ const nextConfig = {
     // Keep prefetched/RSC payloads in the browser router cache so repeat and
     // back/forward navigations render instantly instead of refetching.
     staleTimes: {
-      dynamic: 30,
+      dynamic: 60,
       static: 300,
     },
   },

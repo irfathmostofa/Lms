@@ -20,6 +20,7 @@ import { looksLikeHtml } from '@/lib/rich-text';
 import { formatCurrency, splitList, youtubeIdFromInput } from '@/lib/utils';
 import { getRequestDictionary } from '@/lib/locale';
 import { lessonLabel, modeLabel } from '@/lib/i18n';
+import { getPublishedCourseDetail } from '@/lib/home';
 import type { Course } from '@/lib/types';
 
 export const revalidate = 300;
@@ -57,38 +58,13 @@ interface SectionRow {
 }
 
 const loadCourse = cache(async function loadCourse(slug: string) {
-  if (!hasSupabaseEnv()) return null;
-  const supabase = createPublicClient();
-  const { data: course } = await supabase
-    .from('courses')
-    .select('*')
-    .eq('slug', slug)
-    .eq('status', 'published')
-    .maybeSingle();
-
-  if (!course) return null;
-
-  const [sectionsRes, outlineRes, categoryRes] = await Promise.all([
-    supabase
-      .from('course_sections')
-      .select('id, title, summary')
-      .eq('course_id', course.id)
-      .order('sort_order'),
-    supabase
-      .from('public_lesson_outline')
-      .select('id, section_id, title, type, duration_min, is_preview')
-      .eq('course_id', course.id)
-      .order('sort_order'),
-    course.category_id
-      ? supabase.from('categories').select('name, slug').eq('id', course.category_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-  ]);
-
+  const data = await getPublishedCourseDetail(slug);
+  if (!data) return null;
   return {
-    course: course as Course,
-    sections: (sectionsRes.data as SectionRow[]) ?? [],
-    outline: (outlineRes.data as OutlineRow[]) ?? [],
-    category: (categoryRes.data as { name: string; slug: string } | null) ?? null,
+    course: data.course as Course,
+    sections: data.sections as SectionRow[],
+    outline: data.outline as OutlineRow[],
+    category: data.category,
   };
 });
 

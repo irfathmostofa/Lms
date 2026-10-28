@@ -1248,24 +1248,117 @@ export async function createManualIncomeAction(formData: FormData) {
 }
 
 // Store ---------------------------------------------------------------------
-export async function createProductAction(formData: FormData) {
+function revalidateResources() {
+  revalidateTag(CACHE_TAGS.catalog);
+  revalidateTag(CACHE_TAGS.stats);
+  revalidatePath('/dashboard/resources');
+  revalidatePath('/dashboard/store');
+  revalidatePath('/');
+}
+
+async function saveProductFile(
+  supabase: ReturnType<typeof createClient>,
+  productId: string,
+  title: string,
+  fileUrl: string | null,
+) {
+  if (!fileUrl) return null;
+  const { data: existing } = await supabase
+    .from('product_files')
+    .select('id')
+    .eq('product_id', productId)
+    .limit(1)
+    .maybeSingle();
+  if (existing?.id) {
+    const { error } = await supabase
+      .from('product_files')
+      .update({ title, file_url: fileUrl })
+      .eq('id', existing.id);
+    return error?.message ?? null;
+  }
+  const { error } = await supabase.from('product_files').insert({
+    product_id: productId,
+    title,
+    file_url: fileUrl,
+  });
+  return error?.message ?? null;
+}
+
+export async function createProductAction(_prev: unknown, formData: FormData) {
   await requireRole(['admin']);
   const supabase = createClient();
   const name = str(formData, 'name');
-  if (!name) return;
-  await supabase.from('products').insert({
+  if (!name) return { error: 'Enter a resource name.' };
+  const type = str(formData, 'type') || 'digital';
+  if (!['digital', 'physical'].includes(type)) return { error: 'Choose a valid type.' };
+
+  const image = await uploadOptionalImage(formData, 'thumbnail_file', 'products');
+  if (image.error) return { error: image.error };
+
+  const payload = {
     name,
     slug: str(formData, 'slug') || slugify(name),
-    type: str(formData, 'type') || 'digital',
+    type,
     description: optional(formData, 'description'),
+    thumbnail_url: image.url,
     price: num(formData, 'price'),
-    stock: num(formData, 'stock'),
-    is_active: true,
-  });
-  revalidatePath('/dashboard/store');
-  revalidateTag(CACHE_TAGS.catalog);
-  revalidateTag(CACHE_TAGS.stats);
-  revalidatePath('/');
+    stock: type === 'physical' ? num(formData, 'stock') : 0,
+    is_active: str(formData, 'is_active') !== 'off',
+  };
+
+  const { data, error } = await supabase.from('products').insert(payload).select('id').single();
+  if (error) return { error: error.message };
+
+  const fileError = await saveProductFile(supabase, data.id, name, optional(formData, 'file_url'));
+  if (fileError) return { error: fileError };
+
+  revalidateResources();
+  return { success: 'Resource added.' };
+}
+
+export async function updateProductAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  const name = str(formData, 'name');
+  if (!id) return { error: 'Missing resource.' };
+  if (!name) return { error: 'Enter a resource name.' };
+  const type = str(formData, 'type') || 'digital';
+  if (!['digital', 'physical'].includes(type)) return { error: 'Choose a valid type.' };
+
+  const image = await uploadOptionalImage(formData, 'thumbnail_file', 'products');
+  if (image.error) return { error: image.error };
+
+  const payload = {
+    name,
+    slug: str(formData, 'slug') || slugify(name),
+    type,
+    description: optional(formData, 'description'),
+    thumbnail_url: image.url,
+    price: num(formData, 'price'),
+    stock: type === 'physical' ? num(formData, 'stock') : 0,
+    is_active: str(formData, 'is_active') !== 'off',
+  };
+
+  const { error } = await supabase.from('products').update(payload).eq('id', id);
+  if (error) return { error: error.message };
+
+  const fileError = await saveProductFile(supabase, id, name, optional(formData, 'file_url'));
+  if (fileError) return { error: fileError };
+
+  revalidateResources();
+  return { success: 'Resource updated.' };
+}
+
+export async function deleteProductAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const id = str(formData, 'id');
+  if (!id) return { error: 'Missing resource.' };
+  const { error } = await supabase.from('products').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidateResources();
+  return { success: 'Resource deleted.' };
 }
 
 export async function updateOrderStatusAction(formData: FormData) {

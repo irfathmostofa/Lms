@@ -136,7 +136,7 @@ export function SiteHeaderBar({
   return (
     <div ref={headerRef}>
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:gap-5 sm:px-6">
-        <Link href="/" className="group flex shrink-0 items-center gap-2.5">
+        <Link href="/" prefetch className="group flex shrink-0 items-center gap-2.5">
           <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-brand-600 text-sm font-bold text-white shadow-md shadow-brand-600/25">
             <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.28),transparent_55%)]" />
             <span className="relative">{mark}</span>
@@ -154,6 +154,7 @@ export function SiteHeaderBar({
               <Link
                 key={link.href}
                 href={link.href}
+                prefetch
                 className={cn(
                   'rounded-full px-3.5 py-2 text-sm font-medium transition',
                   active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
@@ -241,6 +242,7 @@ export function SiteHeaderBar({
                 <Link
                   key={link.href}
                   href={link.href}
+                  prefetch
                   className="rounded-xl px-3 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900"
                 >
                   {link.label}
