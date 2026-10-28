@@ -52,8 +52,19 @@ function loadYouTubeApi(): Promise<YouTubeApi> {
   if (apiPromise) return apiPromise;
 
   apiPromise = new Promise<YouTubeApi>((resolve, reject) => {
+    let settled = false;
+
     const finish = () => {
-      if (window.YT?.Player) resolve(window.YT);
+      if (settled || !window.YT?.Player) return;
+      settled = true;
+      resolve(window.YT);
+    };
+
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      apiPromise = null;
+      reject(error);
     };
 
     const previous = window.onYouTubeIframeAPIReady;
@@ -67,22 +78,21 @@ function loadYouTubeApi(): Promise<YouTubeApi> {
       script.id = 'youtube-iframe-api';
       script.src = 'https://www.youtube.com/iframe_api';
       script.async = true;
-      script.onerror = () => {
-        apiPromise = null;
-        reject(new Error('YouTube API failed to load'));
-      };
+      script.onerror = () => fail(new Error('YouTube API failed to load'));
       document.head.appendChild(script);
     }
 
-    window.setTimeout(() => {
+    const poll = window.setInterval(() => {
       if (window.YT?.Player) {
+        window.clearInterval(poll);
+        window.clearTimeout(timer);
         finish();
-        return;
       }
-      if (!window.YT) {
-        apiPromise = null;
-        reject(new Error('YouTube API timed out'));
-      }
+    }, 50);
+
+    const timer = window.setTimeout(() => {
+      window.clearInterval(poll);
+      fail(new Error('YouTube API timed out'));
     }, 12000);
   });
 
@@ -220,6 +230,7 @@ export function SecureYouTubePlayer({
   const shellRef = useRef<HTMLDivElement | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
+  const startedRef = useRef(false);
   const [started, setStarted] = useState(false);
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -230,6 +241,7 @@ export function SecureYouTubePlayer({
   const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
+    startedRef.current = false;
     setStarted(false);
     setReady(false);
     setPlaying(false);
@@ -241,76 +253,114 @@ export function SecureYouTubePlayer({
   }, [videoId]);
 
   useEffect(() => {
-    if (!started) return;
+    if (!validVideo) return;
 
     let cancelled = false;
-    const host = hostRef.current;
+    let frame = 0;
+    let mountedHost: HTMLDivElement | null = null;
 
-    loadYouTubeApi()
-      .then((YT) => {
-        if (cancelled || !host) return;
+    const boot = () => {
+      loadYouTubeApi()
+        .then((YT) => {
+          if (cancelled) return;
+          const node = hostRef.current;
+          if (!node) return;
+          mountedHost = node;
 
-        host.replaceChildren();
-        const mount = document.createElement('div');
-        mount.id = containerId;
-        mount.className = 'h-full w-full';
-        host.appendChild(mount);
+          node.replaceChildren();
+          const mount = document.createElement('div');
+          mount.id = containerId;
+          mount.className = 'h-full w-full';
+          node.appendChild(mount);
 
-        const player = new YT.Player(containerId, {
-          videoId,
-          width: '100%',
-          height: '100%',
-          host: 'https://www.youtube-nocookie.com',
-          playerVars: {
-            autoplay: 1,
-            controls: 0,
-            rel: 0,
-            modestbranding: 1,
-            iv_load_policy: 3,
-            cc_load_policy: 0,
-            playsinline: 1,
-            fs: 0,
-            disablekb: 1,
-            enablejsapi: 1,
-            origin: window.location.origin,
-            widget_referrer: window.location.origin,
-          },
-          events: {
-            onReady: ({ target }) => {
-              if (cancelled) return;
-              playerRef.current = target;
-              setReady(true);
-              setDuration(target.getDuration());
-              target.playVideo();
+          const player = new YT.Player(containerId, {
+            videoId,
+            width: '100%',
+            height: '100%',
+            playerVars: {
+              autoplay: 0,
+              controls: 0,
+              rel: 0,
+              modestbranding: 1,
+              iv_load_policy: 3,
+              cc_load_policy: 0,
+              playsinline: 1,
+              fs: 0,
+              disablekb: 1,
+              enablejsapi: 1,
             },
-            onStateChange: ({ data, target }) => {
-              if (cancelled) return;
-              setPlaying(data === 1);
-              if (data === 1) setDuration(target.getDuration());
+            events: {
+              onReady: ({ target }) => {
+                if (cancelled) return;
+                playerRef.current = target;
+                setReady(true);
+                setDuration(target.getDuration());
+                if (startedRef.current) {
+                  try {
+                    target.unMute();
+                    target.playVideo();
+                  } catch {
+                    try {
+                      target.mute();
+                      target.playVideo();
+                      window.setTimeout(() => {
+                        try {
+                          target.unMute();
+                          setMuted(false);
+                        } catch {
+                          // ignore
+                        }
+                      }, 250);
+                    } catch {
+                      // ignore
+                    }
+                  }
+                }
+              },
+              onStateChange: ({ data, target }) => {
+                if (cancelled) return;
+                setPlaying(data === 1);
+                if (data === 1) {
+                  setStarted(true);
+                  startedRef.current = true;
+                  setDuration(target.getDuration());
+                }
+              },
+              onError: () => {
+                if (!cancelled) setFailed(true);
+              },
             },
-            onError: () => {
-              if (!cancelled) setFailed(true);
-            },
-          },
+          });
+
+          playerRef.current = player;
+        })
+        .catch(() => {
+          if (!cancelled) setFailed(true);
         });
+    };
 
-        playerRef.current = player;
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
+    const start = () => {
+      if (hostRef.current) {
+        boot();
+        return;
+      }
+      frame = window.requestAnimationFrame(start);
+    };
+
+    start();
 
     return () => {
       cancelled = true;
+      if (frame) window.cancelAnimationFrame(frame);
       try {
         playerRef.current?.destroy();
       } catch {
         // ignore
       }
       playerRef.current = null;
-      host?.replaceChildren();
+      mountedHost?.replaceChildren();
     };
-  }, [containerId, started, videoId]);
+  }, [containerId, validVideo, videoId]);
 
   useEffect(() => {
     if (!started) return;
@@ -329,7 +379,37 @@ export function SecureYouTubePlayer({
     return () => window.clearInterval(timer);
   }, [started]);
 
+  const startPlayback = useCallback(() => {
+    startedRef.current = true;
+    setStarted(true);
+    const player = playerRef.current;
+    if (!player) return;
+    try {
+      player.unMute();
+      player.playVideo();
+    } catch {
+      try {
+        player.mute();
+        player.playVideo();
+        window.setTimeout(() => {
+          try {
+            player.unMute();
+            setMuted(false);
+          } catch {
+            // ignore
+          }
+        }, 250);
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
   const togglePlay = useCallback(() => {
+    if (!startedRef.current) {
+      startPlayback();
+      return;
+    }
     const player = playerRef.current;
     if (!player) return;
     try {
@@ -338,7 +418,7 @@ export function SecureYouTubePlayer({
     } catch {
       // ignore
     }
-  }, []);
+  }, [startPlayback]);
 
   const toggleMute = useCallback(() => {
     const player = playerRef.current;
@@ -430,42 +510,6 @@ export function SecureYouTubePlayer({
     );
   }
 
-  if (!started) {
-    return (
-      <div
-        className={`relative select-none overflow-hidden ${fill ? 'h-full rounded-none' : 'rounded-lg'}`}
-        onContextMenu={(event) => event.preventDefault()}
-        onDragStart={(event) => event.preventDefault()}
-        onCopy={(event) => event.preventDefault()}
-      >
-        <button
-          type="button"
-          onClick={() => setStarted(true)}
-          className={`group relative z-10 block w-full overflow-hidden bg-slate-900 ${fill ? 'h-full' : 'aspect-video'}`}
-          aria-label={`Play ${title}`}
-        >
-          <Image
-            src={youtubeThumb(videoId)}
-            alt={title}
-            fill
-            sizes="(max-width: 1024px) 100vw, 66vw"
-            draggable={false}
-            className="pointer-events-none object-contain opacity-80 transition group-hover:opacity-100"
-          />
-          <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/20">
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-brand-700 shadow-xl ring-4 ring-white/30 transition group-hover:scale-110">
-              <PlayIcon />
-            </span>
-          </span>
-          <span className="pointer-events-none absolute bottom-3 left-3 z-10 text-[10px] font-medium text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
-            Protected playback for {watermark}
-          </span>
-        </button>
-        <MovingWatermark label={watermark} />
-      </div>
-    );
-  }
-
   return (
     <div
       ref={shellRef}
@@ -486,21 +530,47 @@ export function SecureYouTubePlayer({
       </div>
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/70 to-transparent" />
 
-      <button
-        type="button"
-        onClick={togglePlay}
-        onDoubleClick={toggleFullscreen}
-        aria-label={playing ? 'Pause video' : 'Play video'}
-        className="absolute inset-0 z-10 h-full w-full cursor-pointer bg-transparent focus-visible:outline-none"
-      />
+      {!started ? (
+        <button
+          type="button"
+          onClick={startPlayback}
+          className="absolute inset-0 z-40 block h-full w-full overflow-hidden bg-slate-900"
+          aria-label={`Play ${title}`}
+        >
+          <Image
+            src={youtubeThumb(videoId)}
+            alt={title}
+            fill
+            sizes="(max-width: 1024px) 100vw, 66vw"
+            draggable={false}
+            className="pointer-events-none object-contain opacity-80"
+          />
+          <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/20">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-brand-700 shadow-xl ring-4 ring-white/30">
+              <PlayIcon />
+            </span>
+          </span>
+          <span className="pointer-events-none absolute bottom-3 left-3 z-10 text-[10px] font-medium text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
+            Protected playback for {watermark}
+          </span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={togglePlay}
+          onDoubleClick={toggleFullscreen}
+          aria-label={playing ? 'Pause video' : 'Play video'}
+          className="absolute inset-0 z-10 h-full w-full cursor-pointer bg-transparent focus-visible:outline-none"
+        />
+      )}
 
-      {!ready && !failed ? (
+      {started && !ready && !failed ? (
         <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center text-xs font-medium text-white/70">
           Loading protected video...
         </span>
       ) : null}
 
-      {ready && !playing && !failed ? (
+      {started && ready && !playing && !failed ? (
         <span aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/55 text-white shadow-lg backdrop-blur-sm">
             <PlayIcon />
