@@ -16,7 +16,7 @@ body {
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-slate-50 font-sans text-slate-900 antialiased;
 }
 
 @keyframes drawer-in {

@@ -4,6 +4,9 @@ const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-anek-bangla)', 'Anek Bangla', 'sans-serif'],
+      },
       colors: {
         brand: {
           50: '#eef6ff',
