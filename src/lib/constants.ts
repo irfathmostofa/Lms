@@ -29,7 +29,7 @@ export const DASHBOARD_NAV: NavItem[] = [
   { href: '/dashboard/my-fees', label: 'My fees', group: 'Finance', roles: ['student'] },
   { href: '/dashboard/my-assessments', label: 'Assessments', group: 'Learning', roles: ['student'] },
   { href: '/dashboard/my-attendance', label: 'Attendance', group: 'Learning', roles: ['student'] },
-  { href: '/dashboard/store', label: 'Store', group: 'Store', roles: ['student'] },
+  { href: '/dashboard/store', label: 'Resources', group: 'Learning', roles: ['student'] },
   { href: '/dashboard/users', label: 'Users', group: 'People', roles: ['admin'] },
   { href: '/dashboard/courses', label: 'Courses', group: 'Academics', roles: ['admin', 'editor', 'instructor'] },
   { href: '/dashboard/enrollments', label: 'Enrollments', group: 'People', roles: ['admin'] },

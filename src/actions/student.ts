@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth';
 import { assessmentTypeConfig, resolveDelivery } from '@/lib/assessments';
 
@@ -151,8 +152,41 @@ export async function toggleLessonProgressAction(formData: FormData) {
   revalidatePath(`/dashboard/my-learning/${courseId}`);
 }
 
+async function grantDigitalAccess(userId: string, orderId: string, productIds: string[]) {
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { error: 'Access could not be granted automatically. Ask an admin to verify the order.' };
+  }
+
+  const { data: products } = await admin
+    .from('products')
+    .select('id, type')
+    .in('id', productIds);
+  const digitalIds = ((products as { id: string; type: string }[]) ?? [])
+    .filter((row) => row.type === 'digital')
+    .map((row) => row.id);
+
+  if (digitalIds.length > 0) {
+    const { error } = await admin.from('product_access').upsert(
+      digitalIds.map((productId) => ({
+        product_id: productId,
+        user_id: userId,
+        order_id: orderId,
+        source: 'purchase',
+      })),
+      { onConflict: 'product_id,user_id' },
+    );
+    if (error) return { error: error.message };
+  }
+
+  await admin.from('orders').update({ status: 'paid' }).eq('id', orderId);
+  return { error: null };
+}
+
 export async function placeOrderAction(_prev: unknown, formData: FormData) {
-  await requireUser();
+  const ctx = await requireUser();
   const supabase = createClient();
 
   const productIds = formData.getAll('product_id').map(String).filter(Boolean);
@@ -160,11 +194,63 @@ export async function placeOrderAction(_prev: unknown, formData: FormData) {
 
   if (items.length === 0) return { error: 'Your cart is empty.' };
 
-  const { error } = await supabase.rpc('place_order', { p_items: items });
+  const { data: orderId, error } = await supabase.rpc('place_order', { p_items: items });
   if (error) return { error: error.message };
 
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, total')
+    .eq('id', orderId)
+    .maybeSingle();
+
+  if (order && Number(order.total) <= 0) {
+    const granted = await grantDigitalAccess(ctx.userId, order.id, productIds);
+    if (granted.error) return { error: granted.error };
+    revalidatePath('/dashboard/store');
+    return { success: 'Resource unlocked. Open it from My resources below.' };
+  }
+
   revalidatePath('/dashboard/store');
-  return { success: 'Order placed. Complete payment to unlock your items.' };
+  revalidatePath('/dashboard/my-fees');
+  return { success: 'Order placed. Submit payment below to unlock your items.' };
+}
+
+export async function claimFreeResourceAction(_prev: unknown, formData: FormData) {
+  const ctx = await requireUser();
+  const supabase = createClient();
+  const productId = str(formData, 'product_id');
+  if (!productId) return { error: 'Missing resource.' };
+
+  const { data: product, error: loadError } = await supabase
+    .from('products')
+    .select('id, type, price, is_active')
+    .eq('id', productId)
+    .maybeSingle();
+  if (loadError) return { error: loadError.message };
+  if (!product?.is_active) return { error: 'This resource is not available.' };
+  if (Number(product.price) > 0) return { error: 'This resource is paid. Add it to your cart instead.' };
+
+  const { data: existing } = await supabase
+    .from('product_access')
+    .select('id')
+    .eq('user_id', ctx.userId)
+    .eq('product_id', productId)
+    .maybeSingle();
+  if (existing) {
+    revalidatePath('/dashboard/store');
+    return { success: 'You already have access to this resource.' };
+  }
+
+  const { data: orderId, error } = await supabase.rpc('place_order', {
+    p_items: [{ product_id: productId, quantity: 1 }],
+  });
+  if (error) return { error: error.message };
+
+  const granted = await grantDigitalAccess(ctx.userId, orderId as string, [productId]);
+  if (granted.error) return { error: granted.error };
+
+  revalidatePath('/dashboard/store');
+  return { success: 'Resource unlocked. Use Download in My resources.' };
 }
 
 export async function updateProfileAction(formData: FormData) {

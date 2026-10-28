@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Button, Card, CardBody, EmptyState } from '@/components/ui';
-import { placeOrderAction } from '@/actions/student';
+import { claimFreeResourceAction, placeOrderAction } from '@/actions/student';
 import { formatCurrency } from '@/lib/utils';
 import type { Product } from '@/lib/types';
 
@@ -16,60 +16,94 @@ function CheckoutButton({ disabled }: { disabled: boolean }) {
   );
 }
 
+function ClaimButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? 'Unlocking...' : 'Get free access'}
+    </Button>
+  );
+}
+
 export function StoreGrid({
   products,
   accessIds,
+  fileUrls = {},
 }: {
   products: Product[];
   accessIds: string[];
+  fileUrls?: Record<string, string>;
 }) {
-  const [state, formAction] = useFormState(placeOrderAction, null);
+  const [orderState, orderAction] = useFormState(placeOrderAction, null);
+  const [claimState, claimAction] = useFormState(claimFreeResourceAction, null);
   const [cart, setCart] = useState<string[]>([]);
   const accessSet = new Set(accessIds);
+  const notices = [claimState, orderState].filter(Boolean);
 
   const inCart = (id: string) => cart.includes(id);
   const toggle = (id: string) =>
     setCart((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
 
   if (products.length === 0) {
-    return <EmptyState title="No products yet" description="Check back soon." />;
+    return <EmptyState title="No resources yet" description="Check back soon." />;
   }
 
   return (
     <div className="space-y-6">
-      {state?.error ? (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
-      ) : null}
-      {state?.success ? (
-        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-          {state.success}
-        </p>
-      ) : null}
+      {notices.map((notice, index) =>
+        notice?.error ? (
+          <p key={`error-${index}`} className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            {notice.error}
+          </p>
+        ) : notice?.success ? (
+          <p key={`success-${index}`} className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            {notice.success}
+          </p>
+        ) : null,
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {products.map((product) => {
           const owned = accessSet.has(product.id);
+          const fileUrl = fileUrls[product.id];
+          const isFree = Number(product.price) <= 0;
           return (
             <Card key={product.id}>
               <CardBody className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase tracking-wide text-slate-400">
-                    {product.type}
+                    {product.type === 'physical' ? 'printed' : 'digital'}
                   </span>
                   {owned ? <span className="text-xs text-emerald-600">Owned</span> : null}
                 </div>
                 <h3 className="text-sm font-semibold text-slate-900">{product.name}</h3>
                 <p className="line-clamp-2 text-xs text-slate-500">{product.description}</p>
                 <p className="text-sm font-semibold text-brand-700">
-                  {formatCurrency(product.price)}
+                  {isFree ? 'Free' : formatCurrency(product.price)}
                 </p>
                 {product.type === 'physical' ? (
                   <p className="text-xs text-slate-400">{product.stock} in stock</p>
                 ) : null}
                 {owned ? (
-                  <Button variant="outline" className="w-full" disabled>
-                    Access available
-                  </Button>
+                  fileUrl ? (
+                    <a
+                      href={fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Download
+                    </a>
+                  ) : (
+                    <Button variant="outline" className="w-full" disabled>
+                      Access granted
+                    </Button>
+                  )
+                ) : isFree && product.type === 'digital' ? (
+                  <form action={claimAction}>
+                    <input type="hidden" name="product_id" value={product.id} />
+                    <ClaimButton />
+                  </form>
                 ) : (
                   <Button
                     variant={inCart(product.id) ? 'secondary' : 'primary'}
@@ -88,7 +122,7 @@ export function StoreGrid({
       {cart.length > 0 ? (
         <Card>
           <CardBody>
-            <form action={formAction} className="space-y-3">
+            <form action={orderAction} className="space-y-3">
               {cart.map((id) => (
                 <input key={id} type="hidden" name="product_id" value={id} />
               ))}
