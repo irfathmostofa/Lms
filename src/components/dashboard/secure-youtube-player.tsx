@@ -142,7 +142,7 @@ function MovingWatermark({ label }: { label: string }) {
   return (
     <span
       aria-hidden="true"
-      className="pointer-events-none absolute z-20 max-w-[80%] truncate text-[11px] font-medium text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition-[top,left] duration-[1400ms] ease-in-out sm:text-sm"
+      className="pointer-events-none absolute z-20 max-w-[80%] truncate text-[8px] font-bold tracking-wide text-white/70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition-[top,left] duration-[1400ms] ease-in-out sm:text-[9px]"
       style={{ top: position.top, left: position.left }}
     >
       {label}
@@ -550,9 +550,11 @@ export function SecureYouTubePlayer({
               <PlayIcon />
             </span>
           </span>
-          <span className="pointer-events-none absolute bottom-3 left-3 z-10 text-[10px] font-medium text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
-            Protected playback for {watermark}
-          </span>
+          {watermark ? (
+            <span className="pointer-events-none absolute bottom-3 left-3 z-10 text-[8px] font-bold tracking-wide text-white/70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] sm:text-[9px]">
+              {watermark}
+            </span>
+          ) : null}
         </button>
       ) : (
         <button
@@ -584,7 +586,7 @@ export function SecureYouTubePlayer({
         </span>
       ) : null}
 
-      <MovingWatermark label={watermark} />
+      {watermark ? <MovingWatermark label={watermark} /> : null}
 
       <div
         className="absolute inset-x-0 bottom-0 z-30 flex items-center gap-3 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-3 pb-2 pt-8"

@@ -273,7 +273,7 @@ export default async function CourseDetailPage({
               <LazyYouTube
                 videoId={videoId}
                 title={`${course.title} intro video`}
-                watermark={course.author_name ? `Preview · ${course.author_name}` : 'Protected preview'}
+                watermark={ctx?.email ?? ctx?.profile?.email ?? ''}
               />
             </div>
           ) : null}

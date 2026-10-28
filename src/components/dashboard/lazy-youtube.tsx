@@ -5,7 +5,7 @@ import { SecureYouTubePlayer } from '@/components/dashboard/secure-youtube-playe
 export function LazyYouTube({
   videoId,
   title,
-  watermark = 'Protected preview',
+  watermark = '',
 }: {
   videoId: string;
   title: string;
