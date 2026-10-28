@@ -38,8 +38,8 @@ export function LogoCarousel({
   return (
     <section className="bg-white py-16 sm:py-20">
       <div className="mx-auto max-w-6xl px-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">{eyebrow}</p>
-        <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{title}</h2>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-600">{eyebrow}</p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{title}</h2>
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {page.map((partner) => {
             const inner = (

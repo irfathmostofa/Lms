@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import { CourseSearch } from '@/components/courses/course-search';
-import { ButtonLink } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
 function SearchIcon({ className }: { className?: string }) {
@@ -32,13 +31,20 @@ function CloseIcon() {
   );
 }
 
+const NAV_LINKS = [
+  { href: '/courses', label: 'Courses' },
+  { href: '/about', label: 'About' },
+];
+
 export function SiteHeaderBar({
+  siteName,
   isAuthenticated,
   name,
   avatarUrl,
   dashboardHref,
   initials,
 }: {
+  siteName: string;
   isAuthenticated: boolean;
   name: string;
   avatarUrl: string | null;
@@ -51,6 +57,7 @@ export function SiteHeaderBar({
   const searchPanelId = useId();
   const menuPanelId = useId();
   const headerRef = useRef<HTMLDivElement>(null);
+  const mark = siteName.trim().slice(0, 1).toUpperCase() || 'L';
 
   useEffect(() => {
     setSearchOpen(false);
@@ -107,52 +114,78 @@ export function SiteHeaderBar({
     <Link
       href={dashboardHref}
       aria-label={`${name} dashboard`}
-      className="flex items-center gap-2 rounded-full border border-slate-200 py-1 pl-1 pr-3 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+      className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 py-1 pl-1 pr-3 transition hover:border-white/20 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
     >
       {avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={avatarUrl} alt="" width={32} height={32} className="h-8 w-8 rounded-full object-cover" />
       ) : (
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-white">
           {initials}
         </span>
       )}
-      <span className="hidden max-w-32 truncate text-sm font-medium text-slate-700 sm:inline">{name}</span>
+      <span className="hidden max-w-32 truncate text-sm font-medium text-white/90 sm:inline">{name}</span>
     </Link>
   );
 
   return (
     <div ref={headerRef}>
-      <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:gap-4 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2 text-lg font-semibold text-brand-700">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-            L
+      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3.5 sm:gap-5 sm:px-6">
+        <Link href="/" className="group flex shrink-0 items-center gap-2.5">
+          <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-brand-400 via-brand-600 to-indigo-700 text-sm font-bold text-white shadow-lg shadow-brand-600/30 ring-1 ring-white/20">
+            <span className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.35),transparent_55%)]" />
+            <span className="relative">{mark}</span>
           </span>
-          <span className="hidden sm:inline">LMS Platform</span>
+          <span className="hidden min-w-0 sm:block">
+            <span className="block truncate text-[15px] font-semibold tracking-tight text-white">{siteName}</span>
+            <span className="block text-[11px] font-medium uppercase tracking-[0.18em] text-white/45">Learn with intent</span>
+          </span>
         </Link>
 
-        <CourseSearch inputId="course-search-header" className="hidden max-w-md flex-1 md:block" />
+        <nav className="hidden items-center gap-1 lg:flex">
+          {NAV_LINKS.map((link) => {
+            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'rounded-full px-3.5 py-2 text-sm font-medium transition',
+                  active ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white',
+                )}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
 
-        <nav className="ml-auto hidden items-center gap-3 md:flex">
-          <Link href="/courses" className="text-sm font-medium text-slate-600 hover:text-slate-900">
-            Courses
-          </Link>
-          <Link href="/about" className="text-sm font-medium text-slate-600 hover:text-slate-900">
-            About
-          </Link>
+        <CourseSearch
+          variant="header-dark"
+          inputId="course-search-header"
+          className="hidden max-w-md flex-1 md:block"
+        />
+
+        <div className="ml-auto hidden items-center gap-2 md:flex">
           {isAuthenticated ? (
             accountLink
           ) : (
             <>
-              <ButtonLink href="/login" variant="outline" size="sm">
+              <Link
+                href="/login"
+                className="inline-flex min-h-10 items-center rounded-full px-4 text-sm font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
+              >
                 Sign in
-              </ButtonLink>
-              <ButtonLink href="/register" size="sm">
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex min-h-10 items-center rounded-full bg-white px-4 text-sm font-semibold text-slate-950 shadow-sm transition hover:bg-brand-50"
+              >
                 Get started
-              </ButtonLink>
+              </Link>
             </>
           )}
-        </nav>
+        </div>
 
         <div className="ml-auto flex items-center gap-1.5 md:hidden">
           <button
@@ -162,10 +195,10 @@ export function SiteHeaderBar({
             aria-expanded={searchOpen}
             aria-controls={searchPanelId}
             className={cn(
-              'inline-flex h-10 w-10 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2',
+              'inline-flex h-10 w-10 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400',
               searchOpen
-                ? 'border-brand-200 bg-brand-50 text-brand-700'
-                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
+                ? 'border-white/20 bg-white/15 text-white'
+                : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10',
             )}
           >
             {searchOpen ? <CloseIcon /> : <SearchIcon className="h-5 w-5" />}
@@ -177,10 +210,10 @@ export function SiteHeaderBar({
             aria-expanded={menuOpen}
             aria-controls={menuPanelId}
             className={cn(
-              'inline-flex h-10 w-10 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2',
+              'inline-flex h-10 w-10 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400',
               menuOpen
-                ? 'border-brand-200 bg-brand-50 text-brand-700'
-                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
+                ? 'border-white/20 bg-white/15 text-white'
+                : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10',
             )}
           >
             {menuOpen ? <CloseIcon /> : <MenuIcon />}
@@ -189,64 +222,55 @@ export function SiteHeaderBar({
       </div>
 
       {searchOpen ? (
-        <div
-          id={searchPanelId}
-          className="animate-search-in border-t border-slate-100 bg-white px-4 py-3 md:hidden"
-        >
+        <div id={searchPanelId} className="animate-search-in border-t border-white/10 bg-slate-950 px-4 py-3 md:hidden">
           <CourseSearch inputId="course-search-header-mobile" autoFocus className="mx-auto max-w-6xl" />
         </div>
       ) : null}
 
       {menuOpen ? (
         <div id={menuPanelId} className="md:hidden">
-          <div className="animate-fade-in border-t border-slate-100 bg-white px-4 py-4">
+          <div className="animate-fade-in border-t border-white/10 bg-slate-950 px-4 py-4">
             <nav className="flex flex-col gap-1">
-              <Link
-                href="/courses"
-                className="rounded-xl px-3 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Courses
-              </Link>
-              <Link
-                href="/about"
-                className="rounded-xl px-3 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                About
-              </Link>
-            </nav>
-            <div className="mt-3 border-t border-slate-100 pt-3">
-              {isAuthenticated ? (
+              {NAV_LINKS.map((link) => (
                 <Link
-                  href={dashboardHref}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-slate-50"
+                  key={link.href}
+                  href={link.href}
+                  className="rounded-xl px-3 py-3 text-sm font-medium text-white/80 hover:bg-white/5 hover:text-white"
                 >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="mt-3 border-t border-white/10 pt-3">
+              {isAuthenticated ? (
+                <Link href={dashboardHref} className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-white/5">
                   {avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={avatarUrl}
-                      alt=""
-                      width={40}
-                      height={40}
-                      className="h-10 w-10 rounded-full object-cover"
-                    />
+                    <img src={avatarUrl} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover" />
                   ) : (
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-sm font-semibold text-white">
                       {initials}
                     </span>
                   )}
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-slate-900">{name}</span>
-                    <span className="text-xs text-slate-500">Go to dashboard</span>
+                    <span className="block truncate text-sm font-semibold text-white">{name}</span>
+                    <span className="text-xs text-white/50">Go to dashboard</span>
                   </span>
                 </Link>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  <ButtonLink href="/login" variant="outline" className="w-full">
+                  <Link
+                    href="/login"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 text-sm font-medium text-white"
+                  >
                     Sign in
-                  </ButtonLink>
-                  <ButtonLink href="/register" className="w-full">
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-950"
+                  >
                     Get started
-                  </ButtonLink>
+                  </Link>
                 </div>
               )}
             </div>

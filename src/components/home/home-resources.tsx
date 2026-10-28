@@ -43,13 +43,13 @@ export function HomeResources({ products }: { products: HomeProduct[] }) {
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-600">
               Learning resources
             </p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
               Tools and guides that go beyond lessons
             </h2>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-500">
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-500 sm:text-base">
               Downloadable handbooks, templates and workbooks designed to help you apply what you
               learn.
             </p>

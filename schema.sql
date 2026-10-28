@@ -527,21 +527,25 @@ create index settings_group_idx on public.settings(group_name);
 
 create table public.hero_slides (
   id              uuid primary key default gen_random_uuid(),
+  course_id       uuid references public.courses(id) on delete set null,
   eyebrow         text,
   title           text not null,
   description     text,
-  image_url       text not null,
+  image_url       text,
   href            text,
   cta_label       text,
   secondary_href  text,
   secondary_label text,
+  particle_style  text not null default 'orbs',
   sort_order      int not null default 0,
   is_active       boolean not null default true,
   created_by      uuid references public.profiles(id) on delete set null,
   created_at      timestamptz not null default now(),
-  updated_at      timestamptz not null default now()
+  updated_at      timestamptz not null default now(),
+  constraint hero_slides_has_visual check (image_url is not null or course_id is not null)
 );
 create index hero_slides_active_idx on public.hero_slides(is_active, sort_order);
+create index hero_slides_course_idx on public.hero_slides(course_id);
 
 alter table public.categories add column if not exists show_on_home boolean not null default true;
 
@@ -1674,6 +1678,7 @@ on conflict (type, code) do nothing;
 insert into public.settings (group_name, key, value, value_type, is_public) values
   ('general','site_name','LMS Platform','text',true),
   ('general','support_phone','+8801700000000','text',true),
+  ('general','support_whatsapp','+8801700000000','text',true),
   ('general','support_email','support@example.com','text',true),
   ('general','currency','BDT','text',true),
   ('payment','manual_enabled','true','boolean',true),
@@ -1681,6 +1686,7 @@ insert into public.settings (group_name, key, value, value_type, is_public) valu
   ('payment','payment_instructions','Send money to the number below, then submit the transaction ID for verification.','text',true),
   ('academic','attendance_pass_percent','75','number',true),
   ('academic','default_pass_marks','40','number',false),
+  ('website','hero_particle_style','orbs','text',true),
   ('store','shipping_flat','60','number',true),
   ('store','free_shipping_min','1500','number',true)
 on conflict (key) do nothing;

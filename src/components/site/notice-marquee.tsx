@@ -7,8 +7,8 @@ export function NoticeMarquee({ notices }: { notices: SiteNotice[] }) {
   const items = [...notices, ...notices];
 
   return (
-    <div className="bg-slate-950 text-white">
-      <div className="notice-marquee" aria-label="Site notices">
+    <div className="border-b border-white/10 bg-slate-950 text-white">
+      <div className="notice-marquee py-1.5" aria-label="Site notices">
         <div className="notice-marquee-track">
           {items.map((notice, index) => {
             const content = (

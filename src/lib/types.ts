@@ -252,18 +252,33 @@ export interface Product {
 
 export interface HeroSlide {
   id: string;
+  course_id: string | null;
   eyebrow: string | null;
   title: string;
   description: string | null;
-  image_url: string;
+  image_url: string | null;
   href: string | null;
   cta_label: string | null;
   secondary_href: string | null;
   secondary_label: string | null;
+  particle_style: string | null;
   sort_order: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  course?: {
+    id: string;
+    title: string;
+    slug: string;
+    summary: string | null;
+    thumbnail_url: string | null;
+    level: string | null;
+    mode: string;
+    price: number;
+    discount_price: number | null;
+    duration_label: string | null;
+    total_lessons: number;
+  } | null;
 }
 
 export interface SiteNotice {

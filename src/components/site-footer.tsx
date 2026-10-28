@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { whatsappHref } from '@/lib/utils';
 
 export function SiteFooter({
   siteName = 'LMS Platform',
@@ -10,6 +11,7 @@ export function SiteFooter({
   supportPhone?: string | null;
 }) {
   const year = new Date().getFullYear();
+  const chatHref = whatsappHref(supportPhone);
 
   return (
     <footer className="border-t border-white/10 bg-slate-950 text-slate-400">
@@ -93,6 +95,13 @@ export function SiteFooter({
               <li>
                 <a href={`tel:${supportPhone}`} className="transition hover:text-white">
                   {supportPhone}
+                </a>
+              </li>
+            ) : null}
+            {chatHref ? (
+              <li>
+                <a href={chatHref} target="_blank" rel="noopener noreferrer" className="transition hover:text-white">
+                  WhatsApp support
                 </a>
               </li>
             ) : null}

@@ -103,3 +103,20 @@ export function splitList(value: string | null | undefined) {
     .filter(Boolean);
 }
 
+export function toWhatsAppNumber(value: string | null | undefined) {
+  const raw = (value ?? '').trim();
+  if (!raw) return null;
+  let digits = raw.replace(/[^\d]/g, '');
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.startsWith('0') && digits.length === 11) digits = `88${digits}`;
+  if (digits.length < 10 || digits.length > 15) return null;
+  return digits;
+}
+
+export function whatsappHref(value: string | null | undefined, text?: string) {
+  const number = toWhatsAppNumber(value);
+  if (!number) return null;
+  const query = text ? `?text=${encodeURIComponent(text)}` : '';
+  return `https://wa.me/${number}${query}`;
+}
+

@@ -11,6 +11,7 @@ import { fromDateTimeLocal, slugify, youtubeIdFromInput } from '@/lib/utils';
 import { assessmentTypeConfig, resolveDelivery } from '@/lib/assessments';
 import { parseQuizQuestions, quizQuestionRows, quizTotalMarks } from '@/lib/quiz';
 import { MAX_IMAGE_BYTES } from '@/lib/image';
+import { resolveParticleStyle } from '@/lib/particles';
 import { findRoomConflict, normalizeTime, type RoomBooking } from '@/lib/rooms';
 
 function str(formData: FormData, key: string) {
@@ -243,6 +244,7 @@ export async function createCourseAction(formData: FormData) {
   const passwordError = await saveCoursePassword(supabase, formData, course.id);
   revalidatePath('/dashboard/courses');
   revalidatePath('/dashboard/content');
+  revalidateCatalog();
 
   if (thumbnail.error || passwordError) {
     redirect(
@@ -298,7 +300,7 @@ export async function updateCourseBasicAction(formData: FormData) {
   const passwordError = await saveCoursePassword(supabase, formData, id);
   revalidatePath('/dashboard/courses');
   revalidatePath(`/dashboard/courses/${id}/setup`);
-  revalidatePath('/courses', 'layout');
+  revalidateCatalog();
 
   if (thumbnail.error || passwordError) {
     redirect(
@@ -328,7 +330,7 @@ export async function updateCourseAdditionalAction(formData: FormData) {
     .eq('id', id);
 
   revalidatePath(`/dashboard/courses/${id}/setup`);
-  revalidatePath('/courses', 'layout');
+  revalidateCatalog();
   redirect(`/dashboard/courses/${id}/setup?step=additional&saved=1`);
 }
 
@@ -341,8 +343,7 @@ export async function setCourseStatusAction(formData: FormData) {
   await supabase.from('courses').update({ status }).eq('id', id);
   revalidatePath('/dashboard/courses');
   revalidatePath('/dashboard/content');
-  // 'layout' scope also refreshes the pre-rendered /courses/[slug] detail pages.
-  revalidatePath('/courses', 'layout');
+  revalidateCatalog();
 }
 
 // Enrollment ----------------------------------------------------------------
@@ -1261,6 +1262,9 @@ export async function createProductAction(formData: FormData) {
     is_active: true,
   });
   revalidatePath('/dashboard/store');
+  revalidateTag(CACHE_TAGS.catalog);
+  revalidateTag(CACHE_TAGS.stats);
+  revalidatePath('/');
 }
 
 export async function updateOrderStatusAction(formData: FormData) {
@@ -1419,6 +1423,7 @@ export async function createCategoryAction(_prev: unknown, formData: FormData) {
   if (error) return { error: error.message };
   revalidateSettings();
   revalidateTag(CACHE_TAGS.website);
+  revalidateTag(CACHE_TAGS.catalog);
   return { success: 'Category added.' };
 }
 
@@ -1448,6 +1453,7 @@ export async function updateCategoryAction(_prev: unknown, formData: FormData) {
   if (error) return { error: error.message };
   revalidateSettings();
   revalidateTag(CACHE_TAGS.website);
+  revalidateTag(CACHE_TAGS.catalog);
   return { success: 'Category saved.' };
 }
 
@@ -1460,6 +1466,7 @@ export async function deleteCategoryAction(_prev: unknown, formData: FormData) {
   if (error) return { error: error.message };
   revalidateSettings();
   revalidateTag(CACHE_TAGS.website);
+  revalidateTag(CACHE_TAGS.catalog);
   return { success: 'Category deleted.' };
 }
 
@@ -1527,76 +1534,136 @@ export async function deleteRoomAction(_prev: unknown, formData: FormData) {
   return { success: 'Classroom deleted.' };
 }
 
+function revalidateCatalog() {
+  revalidateTag(CACHE_TAGS.catalog);
+  revalidateTag(CACHE_TAGS.stats);
+  revalidatePath('/');
+  revalidatePath('/courses', 'layout');
+}
+
 function revalidateHero() {
   revalidateTag(CACHE_TAGS.heroSlides);
+  revalidateTag(CACHE_TAGS.settings);
   revalidatePath('/');
   revalidatePath('/dashboard/hero');
+}
+
+const HERO_COURSE_FIELDS =
+  'id, title, slug, summary, thumbnail_url, level, mode, price, discount_price, duration_label, total_lessons';
+
+async function resolveHeroCourse(
+  supabase: ReturnType<typeof createClient>,
+  courseId: string | null,
+) {
+  if (!courseId) return { error: null as string | null, course: null as Record<string, unknown> | null };
+  const { data, error } = await supabase
+    .from('courses')
+    .select(HERO_COURSE_FIELDS)
+    .eq('id', courseId)
+    .maybeSingle();
+  if (error) return { error: error.message, course: null };
+  if (!data) return { error: 'Choose a published course.', course: null };
+  return { error: null, course: data as Record<string, unknown> };
+}
+
+async function heroSlidePayload(formData: FormData, supabase: ReturnType<typeof createClient>) {
+  const courseId = optional(formData, 'course_id');
+  const resolved = await resolveHeroCourse(supabase, courseId);
+  if (resolved.error) return { error: resolved.error };
+
+  const course = resolved.course;
+  const file = formData.get('image_file');
+  let imageUrl: string | null | undefined;
+  if (file instanceof File && file.size > 0) {
+    const uploaded = await uploadPublicImage(supabase, file, 'hero');
+    if (uploaded.error || !uploaded.url) {
+      return { error: imageUploadError(uploaded) };
+    }
+    imageUrl = uploaded.url;
+  }
+
+  const title = str(formData, 'title') || (typeof course?.title === 'string' ? course.title : '');
+  if (!title) return { error: 'Select a course or enter a title.' };
+
+  return {
+    payload: {
+      course_id: courseId,
+      title,
+      eyebrow: optional(formData, 'eyebrow') ?? (course ? 'Featured course' : null),
+      description: optional(formData, 'description') ?? (typeof course?.summary === 'string' ? course.summary : null),
+      href: optional(formData, 'href') ?? (typeof course?.slug === 'string' ? `/courses/${course.slug}` : '/courses'),
+      cta_label: optional(formData, 'cta_label') ?? (course ? 'View course' : 'Explore courses'),
+      secondary_href: optional(formData, 'secondary_href'),
+      secondary_label: optional(formData, 'secondary_label'),
+      particle_style: resolveParticleStyle(str(formData, 'particle_style')),
+      sort_order: num(formData, 'sort_order'),
+      is_active: str(formData, 'is_active') === 'on',
+      ...(imageUrl ? { image_url: imageUrl } : {}),
+    },
+    course,
+    imageUrl,
+  };
 }
 
 export async function createHeroSlideAction(_prev: unknown, formData: FormData) {
   const ctx = await requireRole(['admin']);
   const supabase = createClient();
-  const title = str(formData, 'title');
-  const file = formData.get('image_file');
-  if (!title) return { error: 'Enter a title.' };
-  if (!(file instanceof File) || file.size === 0) return { error: 'Upload a slider image.' };
+  const resolved = await heroSlidePayload(formData, supabase);
+  if (!('payload' in resolved)) return { error: resolved.error };
 
-  const uploaded = await uploadPublicImage(supabase, file, 'hero');
-  if (uploaded.error || !uploaded.url) {
-    return { error: imageUploadError(uploaded) };
+  const { payload, course, imageUrl } = resolved;
+  const thumbnail = typeof course?.thumbnail_url === 'string' ? course.thumbnail_url : null;
+  if (!imageUrl && !thumbnail) {
+    return { error: 'Select a course that has a thumbnail, or upload a slider image.' };
   }
 
   const { error } = await supabase.from('hero_slides').insert({
-    title,
-    eyebrow: optional(formData, 'eyebrow'),
-    description: optional(formData, 'description'),
-    image_url: uploaded.url,
-    href: optional(formData, 'href'),
-    cta_label: optional(formData, 'cta_label'),
-    secondary_href: optional(formData, 'secondary_href'),
-    secondary_label: optional(formData, 'secondary_label'),
-    sort_order: num(formData, 'sort_order'),
-    is_active: str(formData, 'is_active') === 'on',
+    ...payload,
+    image_url: imageUrl ?? thumbnail,
     created_by: ctx.userId,
   });
   if (error) return { error: error.message };
   revalidateHero();
-  return { success: 'Slide added.' };
+  return { success: 'Hero course added.' };
 }
 
 export async function updateHeroSlideAction(_prev: unknown, formData: FormData) {
   await requireRole(['admin']);
   const supabase = createClient();
   const id = str(formData, 'id');
-  const title = str(formData, 'title');
   if (!id) return { error: 'Missing slide.' };
-  if (!title) return { error: 'Enter a title.' };
 
-  const patch: Record<string, unknown> = {
-    title,
-    eyebrow: optional(formData, 'eyebrow'),
-    description: optional(formData, 'description'),
-    href: optional(formData, 'href'),
-    cta_label: optional(formData, 'cta_label'),
-    secondary_href: optional(formData, 'secondary_href'),
-    secondary_label: optional(formData, 'secondary_label'),
-    sort_order: num(formData, 'sort_order'),
-    is_active: str(formData, 'is_active') === 'on',
-  };
+  const resolved = await heroSlidePayload(formData, supabase);
+  if (!('payload' in resolved)) return { error: resolved.error };
 
-  const file = formData.get('image_file');
-  if (file instanceof File && file.size > 0) {
-    const uploaded = await uploadPublicImage(supabase, file, 'hero');
-    if (uploaded.error || !uploaded.url) {
-      return { error: imageUploadError(uploaded) };
-    }
-    patch.image_url = uploaded.url;
-  }
+  const { payload, course, imageUrl } = resolved;
+  const patch: Record<string, unknown> = { ...payload };
+  if (imageUrl) patch.image_url = imageUrl;
+  else if (typeof course?.thumbnail_url === 'string') patch.image_url = course.thumbnail_url;
 
   const { error } = await supabase.from('hero_slides').update(patch).eq('id', id);
   if (error) return { error: error.message };
   revalidateHero();
-  return { success: 'Slide saved.' };
+  return { success: 'Hero course saved.' };
+}
+
+export async function saveHeroParticleStyleAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const style = resolveParticleStyle(str(formData, 'hero_particle_style'));
+  const { error } = await supabase.from('settings').upsert(
+    {
+      group_name: 'website',
+      key: 'hero_particle_style',
+      value: style,
+      value_type: 'text',
+      is_public: true,
+    },
+    { onConflict: 'key' },
+  );
+  if (error) return { error: error.message };
+  revalidateHero();
+  return { success: 'Particle style saved.' };
 }
 
 export async function deleteHeroSlideAction(_prev: unknown, formData: FormData) {

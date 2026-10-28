@@ -2,7 +2,10 @@ import { getSessionContext } from '@/lib/auth';
 import { ROLE_HOME } from '@/lib/constants';
 import { NoticeMarquee } from '@/components/site/notice-marquee';
 import { SiteHeaderBar } from '@/components/site-header-bar';
+import { FloatingActions } from '@/components/site/floating-actions';
+import { getPublicSettings } from '@/lib/data';
 import { getActiveNotices } from '@/lib/website';
+import { whatsappHref } from '@/lib/utils';
 import type { UserRole } from '@/lib/types';
 
 function initials(name: string): string {
@@ -13,22 +16,35 @@ function initials(name: string): string {
 }
 
 export async function SiteHeader() {
-  const [ctx, notices] = await Promise.all([getSessionContext(), getActiveNotices()]);
+  const [ctx, notices, settings] = await Promise.all([
+    getSessionContext(),
+    getActiveNotices(),
+    getPublicSettings(['site_name', 'support_whatsapp', 'support_phone']),
+  ]);
   const role: UserRole = ctx?.profile?.role ?? 'student';
   const name = ctx?.profile?.full_name || ctx?.email || 'Account';
   const avatarUrl = ctx?.profile?.avatar_url ?? null;
   const dashboardHref = ROLE_HOME[role] ?? '/dashboard';
+  const siteName = settings.site_name ?? 'LMS Platform';
+  const chatHref = whatsappHref(
+    settings.support_whatsapp || settings.support_phone,
+    `Hello ${siteName}, I need help with a course.`,
+  );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur">
-      <NoticeMarquee notices={notices} />
-      <SiteHeaderBar
-        isAuthenticated={Boolean(ctx)}
-        name={name}
-        avatarUrl={avatarUrl}
-        dashboardHref={dashboardHref}
-        initials={initials(name)}
-      />
-    </header>
+    <>
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 text-white shadow-[0_12px_40px_-24px_rgba(15,23,42,0.65)] backdrop-blur-xl">
+        <NoticeMarquee notices={notices} />
+        <SiteHeaderBar
+          siteName={siteName}
+          isAuthenticated={Boolean(ctx)}
+          name={name}
+          avatarUrl={avatarUrl}
+          dashboardHref={dashboardHref}
+          initials={initials(name)}
+        />
+      </header>
+      <FloatingActions whatsappHref={chatHref} />
+    </>
   );
 }

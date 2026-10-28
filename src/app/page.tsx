@@ -10,6 +10,7 @@ import { HomeCta } from '@/components/home/home-cta';
 import {
   getHomeCategories,
   getHomeCourses,
+  getHeroParticleStyle,
   getHomeHeroSlides,
   getHomeProducts,
   getHomeStats,
@@ -63,7 +64,7 @@ function buildCategoryGroups(categories: HomeCategory[], courses: HomeCourse[]):
 }
 
 export default async function HomePage() {
-  const [courses, categories, products, stats, settings, heroSlides, sections, partners, testimonials] =
+  const [courses, categories, products, stats, settings, heroSlides, particleStyle, sections, partners, testimonials] =
     await Promise.all([
       getHomeCourses(),
       getHomeCategories(),
@@ -71,12 +72,15 @@ export default async function HomePage() {
       getHomeStats(),
       getPublicSettings(['site_name', 'support_email', 'support_phone']),
       getHomeHeroSlides(),
+      getHeroParticleStyle(),
       getPageSections(),
       getPartners(),
       getTestimonials(),
     ]);
 
-  const slides = (Array.isArray(heroSlides) ? heroSlides : []).map(toHeroSlideView);
+  const slides = (Array.isArray(heroSlides) ? heroSlides : [])
+    .map(toHeroSlideView)
+    .filter((slide): slide is NonNullable<typeof slide> => Boolean(slide));
   const courseList = Array.isArray(courses) ? courses : [];
   const categoryList = Array.isArray(categories) ? categories : [];
   const partnerList = Array.isArray(partners) ? partners : [];
@@ -122,7 +126,7 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-white">
       <SiteHeader />
-      <HeroSlider slides={slides} />
+      <HeroSlider slides={slides} particleStyle={particleStyle} />
       {isSectionEnabled(sections, 'home_stats') ? <HomeStats items={statItems} /> : null}
 
       {isSectionEnabled(sections, 'home_featured') && featuredFallback.length > 0 ? (
@@ -130,13 +134,13 @@ export default async function HomePage() {
           <div className="mx-auto max-w-6xl px-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-600">
                   Popular right now
                 </p>
-                <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
                   Courses built for real progress
                 </h2>
-                <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-500">
+                <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-500 sm:text-base">
                   Start with a complete learning path or pick up a specific skill. Every course
                   includes lifetime access and progress tracking.
                 </p>

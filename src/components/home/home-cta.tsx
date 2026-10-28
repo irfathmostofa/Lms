@@ -38,7 +38,7 @@ export function HomeCta({
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               Start today
             </span>
-            <h2 className="mt-5 max-w-xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+            <h2 className="mt-5 max-w-xl text-3xl font-semibold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
               Ready to learn something that moves your career forward?
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-300 sm:text-base">

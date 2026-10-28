@@ -85,6 +85,10 @@ body {
     animation: search-in 0.2s ease-out both;
   }
 
+  .floating-action {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
   .notice-marquee {
     overflow: hidden;
     white-space: nowrap;

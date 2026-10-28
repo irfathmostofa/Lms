@@ -5,11 +5,27 @@ import { createHeroSlideAction, updateHeroSlideAction } from '@/actions/dashboar
 import { Field, Input, Select, Textarea } from '@/components/ui';
 import { SubmitButton } from '@/components/dashboard/submit-button';
 import { ImageUpload } from '@/components/dashboard/image-upload';
+import { PARTICLE_STYLES } from '@/lib/particles';
 import type { HeroSlide } from '@/lib/types';
 
-export function HeroSlideForm({ slide }: { slide?: HeroSlide }) {
+export type HeroCourseOption = {
+  id: string;
+  title: string;
+  slug: string;
+  thumbnail_url: string | null;
+  summary: string | null;
+};
+
+export function HeroSlideForm({
+  slide,
+  courses,
+}: {
+  slide?: HeroSlide;
+  courses: HeroCourseOption[];
+}) {
   const action = slide ? updateHeroSlideAction : createHeroSlideAction;
   const [state, formAction] = useFormState(action, null);
+  const previewUrl = slide?.course?.thumbnail_url || slide?.image_url || '';
 
   return (
     <form action={formAction} className="grid gap-3 sm:grid-cols-2">
@@ -26,12 +42,41 @@ export function HeroSlideForm({ slide }: { slide?: HeroSlide }) {
       ) : null}
 
       <div className="sm:col-span-2">
+        <Field
+          label="Featured course"
+          hint="The homepage slider shows this course image. Only courses with a thumbnail appear."
+        >
+          <Select name="course_id" defaultValue={slide?.course_id ?? ''} required={courses.length > 0}>
+            <option value="">{courses.length > 0 ? 'Select a course' : 'No published courses yet'}</option>
+            {courses.map((course) => (
+              <option key={course.id} value={course.id}>
+                {course.title}
+                {course.thumbnail_url ? '' : ' (no image)'}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
+
+      <div className="sm:col-span-2">
+        <Field label="Particle animation" hint="Background motion over the course image.">
+          <Select name="particle_style" defaultValue={slide?.particle_style ?? 'orbs'}>
+            {PARTICLE_STYLES.map((style) => (
+              <option key={style.value} value={style.value}>
+                {style.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
+
+      <div className="sm:col-span-2">
         <ImageUpload
-          label="Slider image"
-          hint="Upload a wide image. It is compressed to 75% quality before save."
+          label="Override image (optional)"
+          hint="Leave empty to use the course thumbnail. Upload only if you want a different hero crop."
           fileName="image_file"
-          defaultUrl={slide?.image_url ?? ''}
-          required={!slide}
+          defaultUrl={previewUrl}
+          required={false}
           maxWidth={1920}
           maxHeight={1080}
           previewClassName="aspect-[16/7] min-h-40"
@@ -39,27 +84,31 @@ export function HeroSlideForm({ slide }: { slide?: HeroSlide }) {
       </div>
 
       <Field label="Eyebrow (optional)">
-        <Input name="eyebrow" defaultValue={slide?.eyebrow ?? ''} placeholder="New batch" />
+        <Input name="eyebrow" defaultValue={slide?.eyebrow ?? ''} placeholder="Featured course" />
       </Field>
-      <Field label="Title">
-        <Input name="title" required defaultValue={slide?.title ?? ''} placeholder="Build skills that open new doors." />
+      <Field label="Title override (optional)">
+        <Input name="title" defaultValue={slide?.title ?? ''} placeholder="Uses the course title if empty" />
       </Field>
       <div className="sm:col-span-2">
-        <Field label="Description (optional)">
-          <Textarea name="description" defaultValue={slide?.description ?? ''} placeholder="Short supporting copy over the image." />
+        <Field label="Description override (optional)">
+          <Textarea
+            name="description"
+            defaultValue={slide?.description ?? ''}
+            placeholder="Uses the course summary if empty."
+          />
         </Field>
       </div>
       <Field label="Button link (optional)">
-        <Input name="href" defaultValue={slide?.href ?? '/courses'} placeholder="/courses" />
+        <Input name="href" defaultValue={slide?.href ?? ''} placeholder="Uses the course page if empty" />
       </Field>
       <Field label="Button label (optional)">
-        <Input name="cta_label" defaultValue={slide?.cta_label ?? 'Explore courses'} />
+        <Input name="cta_label" defaultValue={slide?.cta_label ?? 'View course'} />
       </Field>
       <Field label="Second link (optional)">
-        <Input name="secondary_href" defaultValue={slide?.secondary_href ?? ''} placeholder="/register" />
+        <Input name="secondary_href" defaultValue={slide?.secondary_href ?? '/courses'} placeholder="/courses" />
       </Field>
       <Field label="Second label (optional)">
-        <Input name="secondary_label" defaultValue={slide?.secondary_label ?? ''} />
+        <Input name="secondary_label" defaultValue={slide?.secondary_label ?? 'Browse all courses'} />
       </Field>
       <Field label="Order">
         <Input name="sort_order" type="number" defaultValue={slide?.sort_order ?? 0} />
@@ -72,7 +121,7 @@ export function HeroSlideForm({ slide }: { slide?: HeroSlide }) {
       </Field>
       <div className="sm:col-span-2">
         <SubmitButton pendingLabel={slide ? 'Saving...' : 'Adding...'}>
-          {slide ? 'Save slide' : 'Add slide'}
+          {slide ? 'Save featured course' : 'Add featured course'}
         </SubmitButton>
       </div>
     </form>

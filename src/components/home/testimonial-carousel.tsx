@@ -47,8 +47,8 @@ export function TestimonialCarousel({
   return (
     <section className="bg-slate-50 py-16 sm:py-20">
       <div className="mx-auto max-w-6xl px-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">{eyebrow}</p>
-        <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{title}</h2>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-600">{eyebrow}</p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{title}</h2>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {page.map((item) => (
             <article key={item.id} className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
