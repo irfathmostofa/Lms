@@ -6,6 +6,7 @@ import { LogoCarousel } from '@/components/home/logo-carousel';
 import { TestimonialCarousel } from '@/components/home/testimonial-carousel';
 import { getPublicSettings } from '@/lib/data';
 import { getAboutPage, getPageSections, getPartners, getTeamMembers, getTestimonials, isSectionEnabled } from '@/lib/website';
+import { getRequestDictionary } from '@/lib/locale';
 
 export const revalidate = 300;
 
@@ -24,6 +25,7 @@ export default async function AboutPage() {
     getPublicSettings(['site_name', 'support_email', 'support_phone']),
   ]);
 
+  const dict = getRequestDictionary();
   const siteName = settings.site_name ?? 'LMS Platform';
   const aboutPartners = partners.filter((item) => item.show_on_about);
   const aboutReviews = testimonials.filter((item) => item.show_on_about);
@@ -36,19 +38,18 @@ export default async function AboutPage() {
         <section className="bg-slate-950 py-16 text-white sm:py-20">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 lg:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300">About us</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300">{dict.about.eyebrow}</p>
               <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                {about?.intro_title ?? 'Learn with people who care about your progress.'}
+                {about?.intro_title ?? dict.about.introTitle}
               </h1>
               <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-300">
-                {about?.intro_body ??
-                  'We help students and professionals build practical skills through structured courses, expert instructors and a learning experience that works online and in person.'}
+                {about?.intro_body ?? dict.about.introBody}
               </p>
             </div>
             <MediaVisual
               imageUrl={about?.intro_image_url}
               lottieUrl={about?.intro_lottie_url}
-              alt={about?.intro_title ?? 'About us'}
+              alt={about?.intro_title ?? dict.about.eyebrow}
               className="aspect-[16/10] min-h-56"
             />
           </div>
@@ -62,26 +63,26 @@ export default async function AboutPage() {
               <MediaVisual
                 imageUrl={about?.mission_image_url}
                 lottieUrl={about?.mission_lottie_url}
-                alt={about?.mission_title ?? 'Our mission'}
+                alt={about?.mission_title ?? dict.about.missionTitle}
                 className="mb-6 aspect-[16/10]"
               />
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Mission</p>
-              <h2 className="mt-2 text-2xl font-bold text-slate-900">{about?.mission_title ?? 'Our mission'}</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">{dict.about.mission}</p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">{about?.mission_title ?? dict.about.missionTitle}</h2>
               <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                {about?.mission_body ?? 'Make high-quality teaching accessible, whether you learn from home or in a classroom.'}
+                {about?.mission_body ?? dict.about.missionBody}
               </p>
             </article>
             <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
               <MediaVisual
                 imageUrl={about?.vision_image_url}
                 lottieUrl={about?.vision_lottie_url}
-                alt={about?.vision_title ?? 'Our vision'}
+                alt={about?.vision_title ?? dict.about.visionTitle}
                 className="mb-6 aspect-[16/10]"
               />
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Vision</p>
-              <h2 className="mt-2 text-2xl font-bold text-slate-900">{about?.vision_title ?? 'Our vision'}</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">{dict.about.vision}</p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">{about?.vision_title ?? dict.about.visionTitle}</h2>
               <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                {about?.vision_body ?? 'A trusted place where every learner can grow from first lesson to finished skill.'}
+                {about?.vision_body ?? dict.about.visionBody}
               </p>
             </article>
           </div>
@@ -91,8 +92,8 @@ export default async function AboutPage() {
       {isSectionEnabled(sections, 'about_team') && team.length > 0 ? (
         <section className="bg-slate-50 py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Team</p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Instructors and people behind the work</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">{dict.about.team}</p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{dict.about.teamTitle}</h2>
             <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {team.map((member) => (
                 <article key={member.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -110,10 +111,10 @@ export default async function AboutPage() {
       ) : null}
 
       {isSectionEnabled(sections, 'about_partners') ? (
-        <LogoCarousel partners={aboutPartners} title="Organizations we work with" />
+        <LogoCarousel partners={aboutPartners} title={dict.about.partnersTitle} eyebrow={dict.home.partnersEyebrow} />
       ) : null}
       {isSectionEnabled(sections, 'about_testimonials') ? (
-        <TestimonialCarousel testimonials={aboutReviews} title="Stories from our learners" />
+        <TestimonialCarousel testimonials={aboutReviews} title={dict.about.reviewsTitle} eyebrow={dict.home.reviewsEyebrow} />
       ) : null}
 
       <SiteFooter

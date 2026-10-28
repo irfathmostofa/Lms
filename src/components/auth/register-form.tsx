@@ -5,17 +5,20 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { Button, Field, Input } from '@/components/ui';
 import { signUpAction } from '@/actions/auth';
 import { PasswordField } from '@/components/auth/password-field';
+import { useLocale } from '@/components/i18n/locale-provider';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const { t } = useLocale();
   return (
     <Button type="submit" className="w-full" size="lg" disabled={pending}>
-      {pending ? 'Creating account...' : 'Create account'}
+      {pending ? t('auth.creating') : t('auth.createCta')}
     </Button>
   );
 }
 
 export function RegisterForm() {
+  const { t } = useLocale();
   const [state, formAction] = useFormState(signUpAction, null);
 
   return (
@@ -28,30 +31,28 @@ export function RegisterForm() {
           {state.success}
         </p>
       ) : null}
-      <Field label="Full name">
-        <Input name="full_name" placeholder="Your name" required />
+      <Field label={t('auth.fullName')}>
+        <Input name="full_name" placeholder={t('auth.yourName')} required />
       </Field>
-      <Field label="Email">
+      <Field label={t('auth.emailShort')}>
         <Input name="email" type="email" autoComplete="email" required placeholder="you@example.com" />
       </Field>
-      <Field label="Phone">
+      <Field label={t('auth.phone')}>
         <Input name="phone" placeholder="01XXXXXXXXX" />
       </Field>
       <PasswordField
-        label="Password"
+        label={t('auth.password')}
         name="password"
         autoComplete="new-password"
         required
-        hint="At least 6 characters."
+        hint={t('auth.passwordHint')}
       />
       <SubmitButton />
-      <p className="text-xs text-slate-400">
-        New accounts are always created as students. An admin can change your role later.
-      </p>
+      <p className="text-xs text-slate-400">{t('auth.studentNote')}</p>
       <p className="text-center text-sm text-slate-500">
-        Already registered?{' '}
+        {t('auth.alreadyRegistered')}{' '}
         <Link href="/login" className="font-semibold text-slate-900 hover:underline">
-          Sign in
+          {t('auth.signIn')}
         </Link>
       </p>
     </form>

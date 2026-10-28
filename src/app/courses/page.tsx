@@ -5,6 +5,7 @@ import { SiteFooter } from '@/components/site-footer';
 import { CourseCatalog } from '@/components/courses/course-catalog';
 import { getPublicSettings } from '@/lib/data';
 import { getCatalogCategories, getCatalogCourses } from '@/lib/home';
+import { getRequestDictionary } from '@/lib/locale';
 import type { Category, Course } from '@/lib/types';
 
 export const revalidate = 300;
@@ -19,6 +20,7 @@ export default async function CoursesPage({
     getCatalogCategories() as Promise<Category[]>,
     getPublicSettings(['site_name', 'support_email', 'support_phone']),
   ]);
+  const dict = getRequestDictionary();
   const initialQuery = (searchParams.q ?? '').trim();
 
   return (
@@ -27,12 +29,8 @@ export default async function CoursesPage({
       {courses.length === 0 ? (
         <main className="mx-auto max-w-6xl px-6 py-16">
           <EmptyState
-            title="No published courses yet"
-            description={
-              hasSupabaseEnv()
-                ? 'Once an admin publishes a course it will appear here.'
-                : 'Connect Supabase (set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY) to load courses.'
-            }
+            title={dict.catalog.emptyTitle}
+            description={hasSupabaseEnv() ? dict.catalog.emptyBody : dict.catalog.emptyNoEnv}
           />
         </main>
       ) : (

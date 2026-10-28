@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { whatsappHref } from '@/lib/utils';
+import { getRequestDictionary } from '@/lib/locale';
 
 export function SiteFooter({
   siteName = 'LMS Platform',
@@ -10,6 +11,7 @@ export function SiteFooter({
   supportEmail?: string | null;
   supportPhone?: string | null;
 }) {
+  const dict = getRequestDictionary();
   const year = new Date().getFullYear();
   const chatHref = whatsappHref(supportPhone);
 
@@ -23,66 +25,63 @@ export function SiteFooter({
             </span>
             {siteName}
           </Link>
-          <p className="mt-4 max-w-xs text-sm leading-relaxed">
-            Practical courses, expert instructors and a learning experience that works online
-            and offline.
-          </p>
+          <p className="mt-4 max-w-xs text-sm leading-relaxed">{dict.footer.blurb}</p>
         </div>
 
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-200">Explore</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-200">{dict.footer.explore}</h2>
           <ul className="mt-4 space-y-2.5 text-sm">
             <li>
               <Link href="/" className="transition hover:text-white">
-                Home
+                {dict.footer.home}
               </Link>
             </li>
             <li>
               <Link href="/courses" className="transition hover:text-white">
-                All courses
+                {dict.footer.allCourses}
               </Link>
             </li>
             <li>
               <Link href="/about" className="transition hover:text-white">
-                About
+                {dict.footer.about}
               </Link>
             </li>
             <li>
               <Link href="/dashboard/my-learning" className="transition hover:text-white">
-                My learning
+                {dict.footer.myLearning}
               </Link>
             </li>
             <li>
               <Link href="/dashboard/store" className="transition hover:text-white">
-                Resources
+                {dict.footer.resources}
               </Link>
             </li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-200">Account</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-200">{dict.footer.account}</h2>
           <ul className="mt-4 space-y-2.5 text-sm">
             <li>
               <Link href="/login" className="transition hover:text-white">
-                Sign in
+                {dict.footer.signIn}
               </Link>
             </li>
             <li>
               <Link href="/register" className="transition hover:text-white">
-                Create an account
+                {dict.footer.createAccount}
               </Link>
             </li>
             <li>
               <Link href="/forgot-password" className="transition hover:text-white">
-                Forgot password
+                {dict.footer.forgotPassword}
               </Link>
             </li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-200">Contact</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-200">{dict.footer.contact}</h2>
           <ul className="mt-4 space-y-2.5 text-sm">
             {supportEmail ? (
               <li>
@@ -101,13 +100,13 @@ export function SiteFooter({
             {chatHref ? (
               <li>
                 <a href={chatHref} target="_blank" rel="noopener noreferrer" className="transition hover:text-white">
-                  WhatsApp support
+                  {dict.footer.whatsapp}
                 </a>
               </li>
             ) : null}
             <li>
               <Link href="/dashboard/my-fees" className="transition hover:text-white">
-                Payment help
+                {dict.footer.paymentHelp}
               </Link>
             </li>
           </ul>
@@ -117,9 +116,9 @@ export function SiteFooter({
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-5 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p>
-            &copy; {year} {siteName}. All rights reserved.
+            &copy; {year} {siteName}. {dict.footer.rights}
           </p>
-          <p>Built for online and offline learning.</p>
+          <p>{dict.footer.builtFor}</p>
         </div>
       </div>
     </footer>

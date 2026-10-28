@@ -10,6 +10,7 @@ import { HomeCta } from '@/components/home/home-cta';
 import {
   getHomeCategories,
   getHomeCourses,
+  getHeroLayout,
   getHeroParticleStyle,
   getHomeHeroSlides,
   getHomeProducts,
@@ -22,6 +23,7 @@ import { getPublicSettings } from '@/lib/data';
 import { LogoCarousel } from '@/components/home/logo-carousel';
 import { TestimonialCarousel } from '@/components/home/testimonial-carousel';
 import { getPageSections, getPartners, getTestimonials, isSectionEnabled } from '@/lib/website';
+import { getRequestDictionary } from '@/lib/locale';
 
 export const revalidate = 300;
 
@@ -64,7 +66,7 @@ function buildCategoryGroups(categories: HomeCategory[], courses: HomeCourse[]):
 }
 
 export default async function HomePage() {
-  const [courses, categories, products, stats, settings, heroSlides, particleStyle, sections, partners, testimonials] =
+  const [courses, categories, products, stats, settings, heroSlides, particleStyle, heroLayout, sections, partners, testimonials] =
     await Promise.all([
       getHomeCourses(),
       getHomeCategories(),
@@ -73,6 +75,7 @@ export default async function HomePage() {
       getPublicSettings(['site_name', 'support_email', 'support_phone']),
       getHomeHeroSlides(),
       getHeroParticleStyle(),
+      getHeroLayout(),
       getPageSections(),
       getPartners(),
       getTestimonials(),
@@ -86,6 +89,7 @@ export default async function HomePage() {
   const partnerList = Array.isArray(partners) ? partners : [];
   const reviewList = Array.isArray(testimonials) ? testimonials : [];
 
+  const dict = getRequestDictionary();
   const siteName = settings.site_name ?? 'LMS Platform';
   const featuredCourses = courseList.filter((course) => course.is_featured).slice(0, 6);
   const featuredFallback = featuredCourses.length > 0 ? featuredCourses : courseList.slice(0, 6);
@@ -97,28 +101,28 @@ export default async function HomePage() {
   const statItems: StatItem[] = stats
     ? [
         {
-          label: 'Expert-led courses',
+          label: dict.home.statCourses,
           value: stats.courses,
           suffix: '+',
-          hint: 'Online, offline and hybrid formats.',
+          hint: dict.home.statCoursesHint,
         },
         {
-          label: 'Structured lessons',
+          label: dict.home.statLessons,
           value: stats.lessons,
           suffix: '+',
-          hint: 'Step-by-step content you can revisit.',
+          hint: dict.home.statLessonsHint,
         },
         {
-          label: 'Learners enrolled',
+          label: dict.home.statStudents,
           value: stats.students,
           suffix: '+',
-          hint: 'Students building skills with us.',
+          hint: dict.home.statStudentsHint,
         },
         {
-          label: 'Learning resources',
+          label: dict.home.statResources,
           value: stats.resources,
           suffix: '+',
-          hint: 'Guides, templates and workbooks.',
+          hint: dict.home.statResourcesHint,
         },
       ]
     : [];
@@ -126,7 +130,7 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-white">
       <SiteHeader />
-      <HeroSlider slides={slides} particleStyle={particleStyle} />
+      <HeroSlider slides={slides} particleStyle={particleStyle} layout={heroLayout} courses={featuredFallback} />
       {isSectionEnabled(sections, 'home_stats') ? <HomeStats items={statItems} /> : null}
 
       {isSectionEnabled(sections, 'home_featured') && featuredFallback.length > 0 ? (
@@ -135,21 +139,20 @@ export default async function HomePage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-600">
-                  Popular right now
+                  {dict.home.popularNow}
                 </p>
                 <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-                  Courses built for real progress
+                  {dict.home.featuredTitle}
                 </h2>
                 <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-500 sm:text-base">
-                  Start with a complete learning path or pick up a specific skill. Every course
-                  includes lifetime access and progress tracking.
+                  {dict.home.featuredBody}
                 </p>
               </div>
               <Link
                 href="/courses"
                 className="inline-flex min-h-10 items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Explore all courses
+                {dict.home.exploreAll}
               </Link>
             </div>
 
@@ -166,10 +169,10 @@ export default async function HomePage() {
         <CategoryCourses categories={categoryGroups} courses={courseList} />
       ) : null}
       {isSectionEnabled(sections, 'home_partners') ? (
-        <LogoCarousel partners={homePartners} title="Trusted by partners" />
+        <LogoCarousel partners={homePartners} title={dict.home.partnersTitle} eyebrow={dict.home.partnersEyebrow} />
       ) : null}
       {isSectionEnabled(sections, 'home_testimonials') ? (
-        <TestimonialCarousel testimonials={homeReviews} title="What learners say" />
+        <TestimonialCarousel testimonials={homeReviews} title={dict.home.reviewsTitle} eyebrow={dict.home.reviewsEyebrow} />
       ) : null}
       {isSectionEnabled(sections, 'home_resources') ? <HomeResources products={products} /> : null}
       {isSectionEnabled(sections, 'home_cta') ? (

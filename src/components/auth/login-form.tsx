@@ -5,17 +5,20 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { Button, Field, Input } from '@/components/ui';
 import { signInAction } from '@/actions/auth';
 import { PasswordField } from '@/components/auth/password-field';
+import { useLocale } from '@/components/i18n/locale-provider';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const { t } = useLocale();
   return (
     <Button type="submit" className="w-full" size="lg" disabled={pending}>
-      {pending ? 'Signing in...' : 'Sign in'}
+      {pending ? t('auth.signingIn') : t('auth.signIn')}
     </Button>
   );
 }
 
 export function LoginForm({ next }: { next?: string }) {
+  const { t } = useLocale();
   const [state, formAction] = useFormState(signInAction, null);
 
   return (
@@ -26,7 +29,7 @@ export function LoginForm({ next }: { next?: string }) {
         </p>
       ) : null}
       <input type="hidden" name="next" value={next ?? ''} />
-      <Field label="Email address">
+      <Field label={t('auth.email')}>
         <Input
           name="email"
           type="email"
@@ -36,11 +39,11 @@ export function LoginForm({ next }: { next?: string }) {
         />
       </Field>
       <PasswordField
-        label="Password"
+        label={t('auth.password')}
         name="password"
         autoComplete="current-password"
         required
-        placeholder="Enter your password"
+        placeholder={t('auth.enterPassword')}
       />
       <div className="flex items-center justify-between gap-3">
         <label className="flex items-center gap-2 text-xs text-slate-500">
@@ -49,17 +52,17 @@ export function LoginForm({ next }: { next?: string }) {
             name="remember"
             className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
           />
-          Keep me signed in
+          {t('auth.keepSignedIn')}
         </label>
         <Link href="/forgot-password" className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline">
-          Forgot password?
+          {t('auth.forgot')}
         </Link>
       </div>
       <SubmitButton />
       <p className="text-center text-sm text-slate-500">
-        New here?{' '}
+        {t('auth.newHere')}{' '}
         <Link href="/register" className="font-semibold text-slate-900 hover:underline">
-          Create an account
+          {t('auth.createAccount')}
         </Link>
       </p>
     </form>

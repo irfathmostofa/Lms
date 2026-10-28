@@ -12,6 +12,7 @@ import { assessmentTypeConfig, resolveDelivery } from '@/lib/assessments';
 import { parseQuizQuestions, quizQuestionRows, quizTotalMarks } from '@/lib/quiz';
 import { MAX_IMAGE_BYTES } from '@/lib/image';
 import { resolveParticleStyle } from '@/lib/particles';
+import { resolveHeroLayout } from '@/lib/hero';
 import { findRoomConflict, normalizeTime, type RoomBooking } from '@/lib/rooms';
 
 function str(formData: FormData, key: string) {
@@ -1664,6 +1665,25 @@ export async function saveHeroParticleStyleAction(_prev: unknown, formData: Form
   if (error) return { error: error.message };
   revalidateHero();
   return { success: 'Particle style saved.' };
+}
+
+export async function saveHeroLayoutAction(_prev: unknown, formData: FormData) {
+  await requireRole(['admin']);
+  const supabase = createClient();
+  const layout = resolveHeroLayout(str(formData, 'hero_layout'));
+  const { error } = await supabase.from('settings').upsert(
+    {
+      group_name: 'website',
+      key: 'hero_layout',
+      value: layout,
+      value_type: 'text',
+      is_public: true,
+    },
+    { onConflict: 'key' },
+  );
+  if (error) return { error: error.message };
+  revalidateHero();
+  return { success: 'Hero layout saved.' };
 }
 
 export async function deleteHeroSlideAction(_prev: unknown, formData: FormData) {

@@ -5,6 +5,7 @@ import { SiteHeaderBar } from '@/components/site-header-bar';
 import { FloatingActions } from '@/components/site/floating-actions';
 import { getPublicSettings } from '@/lib/data';
 import { getActiveNotices } from '@/lib/website';
+import { getRequestLocale } from '@/lib/locale';
 import { whatsappHref } from '@/lib/utils';
 import type { UserRole } from '@/lib/types';
 
@@ -21,6 +22,7 @@ export async function SiteHeader() {
     getActiveNotices(),
     getPublicSettings(['site_name', 'support_whatsapp', 'support_phone']),
   ]);
+  const locale = getRequestLocale();
   const role: UserRole = ctx?.profile?.role ?? 'student';
   const name = ctx?.profile?.full_name || ctx?.email || 'Account';
   const avatarUrl = ctx?.profile?.avatar_url ?? null;
@@ -28,12 +30,14 @@ export async function SiteHeader() {
   const siteName = settings.site_name ?? 'LMS Platform';
   const chatHref = whatsappHref(
     settings.support_whatsapp || settings.support_phone,
-    `Hello ${siteName}, I need help with a course.`,
+    locale === 'bn'
+      ? `হ্যালো ${siteName}, আমার একটি কোর্স নিয়ে সাহায্য দরকার।`
+      : `Hello ${siteName}, I need help with a course.`,
   );
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/80 text-white shadow-[0_12px_40px_-24px_rgba(15,23,42,0.65)] backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 text-slate-900 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.28)] backdrop-blur-xl">
         <NoticeMarquee notices={notices} />
         <SiteHeaderBar
           siteName={siteName}
@@ -42,6 +46,7 @@ export async function SiteHeader() {
           avatarUrl={avatarUrl}
           dashboardHref={dashboardHref}
           initials={initials(name)}
+          locale={locale}
         />
       </header>
       <FloatingActions whatsappHref={chatHref} />

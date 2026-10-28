@@ -1,4 +1,7 @@
+'use client';
+
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/components/i18n/locale-provider';
 
 function SearchIcon({ className }: { className?: string }) {
   return (
@@ -22,6 +25,7 @@ export function CourseSearch({
   inputId?: string;
   autoFocus?: boolean;
 }) {
+  const { t } = useLocale();
   const isHero = variant === 'hero';
   const isDark = variant === 'header-dark';
   const fieldId = inputId ?? `course-search-${variant}`;
@@ -29,7 +33,7 @@ export function CourseSearch({
   return (
     <form action="/courses" method="get" role="search" className={cn('relative w-full', className)}>
       <label className="sr-only" htmlFor={fieldId}>
-        Search courses
+        {t('search.placeholder')}
       </label>
       <SearchIcon
         className={cn(
@@ -43,7 +47,7 @@ export function CourseSearch({
         type="search"
         name="q"
         defaultValue={defaultValue}
-        placeholder={isHero ? 'Search a course, skill or topic' : 'Search courses'}
+        placeholder={isHero ? t('search.heroPlaceholder') : t('search.placeholder')}
         autoComplete="off"
         enterKeyHint="search"
         autoFocus={autoFocus}
@@ -53,7 +57,7 @@ export function CourseSearch({
             ? 'h-12 rounded-2xl border-slate-200 bg-white py-3 pl-11 pr-24 text-sm text-slate-900 shadow-xl shadow-slate-950/15 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30 sm:h-14 sm:pl-12 sm:pr-32 sm:text-base'
             : isDark
               ? 'h-11 rounded-full border-white/10 bg-white/10 py-2 pl-9 pr-3 text-sm text-white placeholder:text-white/40 focus:border-brand-400 focus:bg-white/15 focus:ring-2 focus:ring-brand-400/30'
-              : 'h-11 rounded-xl border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30',
+              : 'h-11 rounded-xl border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-400 focus:bg-white focus:ring-2 focus:ring-brand-400/30',
         )}
       />
       {isHero ? (
@@ -61,11 +65,11 @@ export function CourseSearch({
           type="submit"
           className="absolute right-1.5 top-1/2 inline-flex h-9 -translate-y-1/2 items-center justify-center rounded-xl bg-brand-600 px-3.5 text-sm font-semibold text-white transition hover:bg-brand-700 sm:right-2 sm:h-11 sm:px-5"
         >
-          Search
+          {t('search.submit')}
         </button>
       ) : (
         <button type="submit" className="sr-only">
-          Search
+          {t('search.submit')}
         </button>
       )}
     </form>

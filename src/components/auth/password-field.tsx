@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react';
 import { Input } from '@/components/ui';
+import { useLocale } from '@/components/i18n/locale-provider';
 
 function EyeIcon() {
   return (
@@ -63,6 +64,7 @@ export function PasswordField({
   const generatedId = useId();
   const inputId = `${name}-${generatedId}`;
   const [visible, setVisible] = useState(false);
+  const { t } = useLocale();
 
   return (
     <div>
@@ -84,7 +86,7 @@ export function PasswordField({
           type="button"
           onClick={() => setVisible((current) => !current)}
           className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-0"
-          aria-label={visible ? 'Hide password' : 'Show password'}
+          aria-label={visible ? t('auth.hidePassword') : t('auth.showPassword')}
           aria-pressed={visible}
         >
           {visible ? <EyeOffIcon /> : <EyeIcon />}

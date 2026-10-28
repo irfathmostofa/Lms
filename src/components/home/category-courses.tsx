@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import type { HomeCourse } from '@/lib/home';
 import { HomeCourseCard } from '@/components/home/home-course-card';
+import { useLocale } from '@/components/i18n/locale-provider';
 import { cn } from '@/lib/utils';
 
 export interface CategoryGroup {
@@ -20,6 +21,7 @@ export function CategoryCourses({
   categories: CategoryGroup[];
   courses: HomeCourse[];
 }) {
+  const { t } = useLocale();
   const [active, setActive] = useState('all');
   const visibleGroups = useMemo(
     () => categories.filter((group) => group.courses.length > 0),
@@ -37,27 +39,26 @@ export function CategoryCourses({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-600">
-              Browse by category
+              {t('category.eyebrow')}
             </p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-              Find the right path for your goals
+              {t('category.title')}
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-500 sm:text-base">
-              Every category combines structured lessons, practical work and support from
-              experienced instructors.
+              {t('category.body')}
             </p>
           </div>
           <Link
             href="/courses"
             className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
           >
-            View all courses
+            {t('category.viewAll')}
           </Link>
         </div>
 
         <div
           role="tablist"
-          aria-label="Course categories"
+          aria-label={t('category.tabsLabel')}
           className="scrollbar-thin mt-8 flex gap-2 overflow-x-auto pb-1"
         >
           <button
@@ -72,7 +73,7 @@ export function CategoryCourses({
                 : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900',
             )}
           >
-            All courses
+            {t('category.allCourses')}
             <span
               className={cn(
                 'rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
@@ -126,7 +127,7 @@ export function CategoryCourses({
               href="/courses"
               className="text-sm font-semibold text-brand-600 hover:text-brand-700 hover:underline"
             >
-              See all {activeGroup.name} courses
+              {t('category.seeAll', { name: activeGroup.name })}
             </Link>
           </div>
         ) : null}

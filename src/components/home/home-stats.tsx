@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useLocale } from '@/components/i18n/locale-provider';
 
 export interface StatItem {
   label: string;
@@ -39,16 +40,18 @@ function useCountUp(target: number, active: boolean) {
 }
 
 function StatValue({ value, suffix, active }: { value: number; suffix?: string; active: boolean }) {
+  const { locale } = useLocale();
   const current = useCountUp(value, active);
   return (
     <span className="tabular-nums">
-      {current.toLocaleString('en-US')}
+      {current.toLocaleString(locale === 'bn' ? 'bn-BD' : 'en-US')}
       {suffix ? <span className="text-brand-500">{suffix}</span> : null}
     </span>
   );
 }
 
 export function HomeStats({ items }: { items: StatItem[] }) {
+  const { t } = useLocale();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [active, setActive] = useState(false);
 
@@ -78,7 +81,7 @@ export function HomeStats({ items }: { items: StatItem[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section aria-label="Learning in numbers" className="relative z-10 bg-white">
+    <section aria-label={t('home.statsLabel')} className="relative z-10 bg-white">
       <div className="mx-auto max-w-6xl px-6">
         <div
           ref={containerRef}

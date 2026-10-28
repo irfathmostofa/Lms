@@ -1,7 +1,11 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import type { HomeCourse } from '@/lib/home';
 import { formatCurrency } from '@/lib/utils';
+import { useLocale } from '@/components/i18n/locale-provider';
+import { lessonLabel, modeLabel } from '@/lib/i18n';
 
 const gradients = [
   'from-brand-500 via-brand-700 to-slate-950',
@@ -42,6 +46,7 @@ function BookIcon() {
 }
 
 export function HomeCourseCard({ course }: { course: HomeCourse }) {
+  const { t, dict } = useLocale();
   const price = Number(course.discount_price ?? course.price ?? 0);
   const original = Number(course.price ?? 0);
   const hasDiscount = Boolean(course.discount_price && original > Number(course.discount_price));
@@ -81,17 +86,17 @@ export function HomeCourseCard({ course }: { course: HomeCourse }) {
               modeTone[course.mode] ?? 'bg-white text-slate-700 ring-slate-200'
             }`}
           >
-            {course.mode}
+            {modeLabel(dict, course.mode)}
           </span>
           {course.is_featured ? (
             <span className="rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-slate-800 ring-1 ring-inset ring-slate-200">
-              Featured
+              {t('course.featured')}
             </span>
           ) : null}
         </div>
         {hasDiscount ? (
           <span className="absolute right-4 top-4 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow">
-            Save {Math.round(((original - Number(course.discount_price)) / original) * 100)}%
+            {t('course.save', { percent: Math.round(((original - Number(course.discount_price)) / original) * 100) })}
           </span>
         ) : null}
       </div>
@@ -106,20 +111,20 @@ export function HomeCourseCard({ course }: { course: HomeCourse }) {
           {course.title}
         </h3>
         <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-500">
-          {course.summary ?? 'Structured lessons and practical projects with lifetime access.'}
+          {course.summary ?? t('course.fallbackSummary')}
         </p>
 
         <div className="mt-auto flex items-end justify-between gap-3 pt-5">
           <div>
             <p className="text-lg font-bold text-slate-900">
-              {price > 0 ? formatCurrency(price) : 'Free'}
+              {price > 0 ? formatCurrency(price) : t('course.free')}
             </p>
             {hasDiscount ? (
               <p className="text-xs text-slate-400 line-through">{formatCurrency(original)}</p>
             ) : null}
           </div>
           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
-            {course.total_lessons} lesson{course.total_lessons === 1 ? '' : 's'}
+            {lessonLabel(dict, course.total_lessons)}
           </span>
         </div>
       </div>

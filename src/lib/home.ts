@@ -4,6 +4,7 @@ import { hasSupabaseEnv } from '@/lib/env';
 import { CACHE_TAGS } from '@/lib/data';
 import type { HeroSlide } from '@/lib/types';
 import { resolveParticleStyle, type ParticleStyle } from '@/lib/particles';
+import { resolveHeroLayout, type HeroLayout } from '@/lib/hero';
 
 export interface HeroSlideView {
   id: string;
@@ -338,6 +339,27 @@ const DEMO_STATS: HomeStats = {
   resources: 36,
   categories: 8,
 };
+
+export const getHeroLayout = unstable_cache(
+  async function getHeroLayout(): Promise<HeroLayout> {
+    if (!hasSupabaseEnv()) return 'text';
+    try {
+      const supabase = createPublicClient();
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('is_public', true)
+        .eq('key', 'hero_layout')
+        .maybeSingle();
+      if (error) return 'text';
+      return resolveHeroLayout(data?.value);
+    } catch {
+      return 'text';
+    }
+  },
+  ['home:hero-layout'],
+  { revalidate: 300, tags: [CACHE_TAGS.heroSlides, CACHE_TAGS.settings] },
+);
 
 export const getHeroParticleStyle = unstable_cache(
   async function getHeroParticleStyle(): Promise<ParticleStyle> {

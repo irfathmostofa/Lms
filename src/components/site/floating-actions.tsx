@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/components/i18n/locale-provider';
 
 function WhatsAppIcon() {
   return (
@@ -20,6 +21,7 @@ function ArrowUpIcon() {
 }
 
 export function FloatingActions({ whatsappHref }: { whatsappHref?: string | null }) {
+  const { t } = useLocale();
   const [showTop, setShowTop] = useState(false);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function FloatingActions({ whatsappHref }: { whatsappHref?: string | null
       <button
         type="button"
         onClick={scrollTop}
-        aria-label="Back to top"
+        aria-label={t('common.backToTop')}
         className={cn(
           'floating-action pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-800 shadow-lg shadow-slate-900/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2',
           showTop ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0',
@@ -52,7 +54,7 @@ export function FloatingActions({ whatsappHref }: { whatsappHref?: string | null
           href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Chat on WhatsApp"
+          aria-label={t('common.chatWhatsapp')}
           className="pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-emerald-900/25 transition hover:scale-105 hover:bg-[#1ebe5d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2"
         >
           <WhatsAppIcon />

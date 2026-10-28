@@ -18,6 +18,8 @@ import { SiteFooter } from '@/components/site-footer';
 import { courseAccessCookieName, verifyCourseAccess } from '@/lib/course-access';
 import { looksLikeHtml } from '@/lib/rich-text';
 import { formatCurrency, splitList, youtubeIdFromInput } from '@/lib/utils';
+import { getRequestDictionary } from '@/lib/locale';
+import { lessonLabel, modeLabel } from '@/lib/i18n';
 import type { Course } from '@/lib/types';
 
 export const revalidate = 300;
@@ -96,7 +98,10 @@ export async function generateMetadata({
   params: { slug: string };
 }): Promise<Metadata> {
   const data = await loadCourse(params.slug);
-  if (!data) return { title: 'Course not found' };
+  if (!data) {
+    const dict = getRequestDictionary();
+    return { title: dict.detail.notFound };
+  }
   return {
     title: data.course.title,
     description: data.course.summary ?? undefined,
@@ -135,6 +140,7 @@ export default async function CourseDetailPage({
   searchParams: { locked?: string };
 }) {
   const [data, ctx] = await Promise.all([loadCourse(params.slug), getSessionContext()]);
+  const dict = getRequestDictionary();
   if (!data) notFound();
 
   const { course, sections, outline, category } = data;
@@ -164,7 +170,7 @@ export default async function CourseDetailPage({
   const requirements = splitList(course.requirements);
   const duration =
     course.duration_label ??
-    (course.duration_hours ? `${course.duration_hours} hours of content` : null);
+    (course.duration_hours ? dict.detail.hours.replace('{count}', String(course.duration_hours)) : null);
 
   const buyBox = (
     <Card className="overflow-hidden shadow-xl">
@@ -179,32 +185,32 @@ export default async function CourseDetailPage({
             priority
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-slate-400">No preview</div>
+          <div className="flex h-full items-center justify-center text-sm text-slate-400">{dict.detail.noPreview}</div>
         )}
       </div>
       <CardBody className="space-y-4">
         <div>
-          <p className="text-3xl font-bold text-slate-900">{price > 0 ? formatCurrency(price) : 'Free'}</p>
+          <p className="text-3xl font-bold text-slate-900">{price > 0 ? formatCurrency(price) : dict.detail.free}</p>
           {course.discount_price ? (
             <p className="text-sm text-slate-400 line-through">{formatCurrency(course.price)}</p>
           ) : null}
         </div>
         <ul className="space-y-2 text-sm text-slate-600">
-          <li>{course.total_lessons} lessons</li>
+          <li>{lessonLabel(dict, course.total_lessons)}</li>
           {duration ? <li>{duration}</li> : null}
-          <li>Lifetime access after verification</li>
-          {course.mode !== 'online' ? <li>Offline batch with attendance</li> : null}
+          <li>{dict.detail.lifetime}</li>
+          {course.mode !== 'online' ? <li>{dict.detail.offlineBatch}</li> : null}
         </ul>
         {locked ? (
           <form action={unlockCourseAction} className="space-y-3">
             <input type="hidden" name="slug" value={course.slug} />
             <input type="hidden" name="course_id" value={course.id} />
-            <Field label="Course password">
+            <Field label={dict.detail.password}>
               <Input name="password" type="password" required />
             </Field>
-            {searchParams.locked ? <p className="text-xs text-red-600">That password is not correct.</p> : null}
-            <SubmitButton className="w-full" pendingLabel="Checking...">
-              Unlock course
+            {searchParams.locked ? <p className="text-xs text-red-600">{dict.detail.wrongPassword}</p> : null}
+            <SubmitButton className="w-full" pendingLabel={dict.detail.checking}>
+              {dict.detail.unlock}
             </SubmitButton>
           </form>
         ) : (
@@ -229,7 +235,7 @@ export default async function CourseDetailPage({
           <div>
             <p className="text-sm text-brand-700">
               <Link href="/courses" className="hover:underline">
-                All courses
+                {dict.detail.allCourses}
               </Link>
               {category ? (
                 <>
@@ -243,12 +249,12 @@ export default async function CourseDetailPage({
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
               {course.author_name ? (
                 <span>
-                  Created by <span className="font-semibold text-slate-800">{course.author_name}</span>
+                  {dict.detail.createdBy} <span className="font-semibold text-slate-800">{course.author_name}</span>
                 </span>
               ) : null}
-              <span>{course.total_lessons} lessons</span>
+              <span>{lessonLabel(dict, course.total_lessons)}</span>
               {duration ? <span>{duration}</span> : null}
-              <span className="capitalize">{course.mode}</span>
+              <span>{modeLabel(dict, course.mode)}</span>
               {course.level ? <span>{course.level}</span> : null}
             </div>
             {course.tags?.length ? (
@@ -272,20 +278,20 @@ export default async function CourseDetailPage({
             <div className="mt-6 overflow-hidden rounded-xl lg:mt-0">
               <LazyYouTube
                 videoId={videoId}
-                title={`${course.title} intro video`}
+                title={dict.detail.introVideo.replace('{title}', course.title)}
                 watermark={ctx?.email ?? ctx?.profile?.email ?? ''}
               />
             </div>
           ) : null}
 
           {!locked && outcomes.length > 0 ? (
-            <InfoSection title="What you will learn">
+            <InfoSection title={dict.detail.learn}>
               <PointList items={outcomes} />
             </InfoSection>
           ) : null}
 
           {course.description ? (
-            <InfoSection title="Description">
+            <InfoSection title={dict.detail.description}>
               {looksLikeHtml(course.description) ? (
                 <div className="rich-text mt-3" dangerouslySetInnerHTML={{ __html: course.description }} />
               ) : (
@@ -295,32 +301,32 @@ export default async function CourseDetailPage({
           ) : null}
 
           {!locked && course.target_audience ? (
-            <InfoSection title="Who this course is for">
+            <InfoSection title={dict.detail.audience}>
               <p className="mt-3 whitespace-pre-line text-sm text-slate-600">{course.target_audience}</p>
             </InfoSection>
           ) : null}
 
           {!locked && materials.length > 0 ? (
-            <InfoSection title="This course includes">
+            <InfoSection title={dict.detail.includes}>
               <PointList items={materials} />
             </InfoSection>
           ) : null}
 
           {!locked && requirements.length > 0 ? (
-            <InfoSection title="Requirements">
+            <InfoSection title={dict.detail.requirements}>
               <PointList items={requirements} />
             </InfoSection>
           ) : null}
 
           <section className="mt-8">
-            <h2 className="text-xl font-bold text-slate-900">Course content</h2>
+            <h2 className="text-xl font-bold text-slate-900">{dict.detail.content}</h2>
             {locked ? (
               <div className="mt-3 rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center">
-                <p className="text-sm font-medium text-slate-700">This curriculum is locked</p>
-                <p className="mt-1 text-xs text-slate-500">Enter the course password to view the topics and lessons.</p>
+                <p className="text-sm font-medium text-slate-700">{dict.detail.lockedTitle}</p>
+                <p className="mt-1 text-xs text-slate-500">{dict.detail.lockedBody}</p>
               </div>
             ) : sections.length === 0 ? (
-              <p className="mt-3 text-sm text-slate-500">Curriculum will be published soon.</p>
+              <p className="mt-3 text-sm text-slate-500">{dict.detail.comingSoon}</p>
             ) : (
               <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
                 {sections.map((section) => {
@@ -330,7 +336,7 @@ export default async function CourseDetailPage({
                       <summary className="cursor-pointer bg-slate-50 px-5 py-3.5 text-sm font-semibold text-slate-900">
                         {section.title}
                         <span className="ml-2 font-normal text-slate-500">
-                          {section.summary ?? `${lessons.length} lectures`}
+                          {section.summary ?? dict.detail.lectures.replace('{count}', String(lessons.length))}
                         </span>
                       </summary>
                       <ul className="divide-y divide-slate-100">
@@ -338,14 +344,14 @@ export default async function CourseDetailPage({
                           <li key={lesson.id} className="flex items-center justify-between px-5 py-2.5 text-sm">
                             <span className="text-slate-700">{lesson.title}</span>
                             <span className="flex items-center gap-2 text-xs text-slate-400">
-                              {lesson.is_preview ? <Badge tone="green">Preview</Badge> : null}
+                              {lesson.is_preview ? <Badge tone="green">{dict.detail.preview}</Badge> : null}
                               <span className="uppercase">{lesson.type}</span>
                               {lesson.duration_min ? <span>{lesson.duration_min}m</span> : null}
                             </span>
                           </li>
                         ))}
                         {lessons.length === 0 ? (
-                          <li className="px-5 py-3 text-xs text-slate-400">No lessons in this section yet.</li>
+                          <li className="px-5 py-3 text-xs text-slate-400">{dict.detail.noLessons}</li>
                         ) : null}
                       </ul>
                     </details>

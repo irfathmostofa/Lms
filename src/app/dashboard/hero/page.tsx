@@ -4,10 +4,12 @@ import { createClient } from '@/lib/supabase/server';
 import { getSessionContext } from '@/lib/auth';
 import { HeroSlideForm, type HeroCourseOption } from '@/components/dashboard/hero-slide-form';
 import { HeroParticleForm } from '@/components/dashboard/hero-particle-form';
+import { HeroLayoutForm } from '@/components/dashboard/hero-layout-form';
 import { DeleteHeroSlideButton } from '@/components/dashboard/delete-hero-slide-button';
 import { FormModal } from '@/components/dashboard/form-modal';
 import { Badge, Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui';
 import { particleStyleLabel, resolveParticleStyle } from '@/lib/particles';
+import { resolveHeroLayout } from '@/lib/hero';
 import type { HeroSlide } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +19,7 @@ export default async function HeroSlidesPage() {
   if (ctx?.profile?.role !== 'admin') redirect('/dashboard');
 
   const supabase = createClient();
-  const [{ data, error }, { data: courseData }, { data: settingData }] = await Promise.all([
+  const [{ data, error }, { data: courseData }, { data: settingRows }] = await Promise.all([
     supabase
       .from('hero_slides')
       .select('*, course:courses(id, title, slug, summary, thumbnail_url, level, mode, price, discount_price, duration_label, total_lessons)')
@@ -28,18 +30,20 @@ export default async function HeroSlidesPage() {
       .select('id, title, slug, thumbnail_url, summary')
       .eq('status', 'published')
       .order('title'),
-    supabase.from('settings').select('value').eq('key', 'hero_particle_style').maybeSingle(),
+    supabase.from('settings').select('key, value').in('key', ['hero_particle_style', 'hero_layout']),
   ]);
 
   const slides = (data as HeroSlide[]) ?? [];
   const courses = ((courseData as HeroCourseOption[]) ?? []).filter((course) => Boolean(course.thumbnail_url));
-  const defaultParticle = resolveParticleStyle(settingData?.value ?? 'orbs');
+  const settings = Object.fromEntries(((settingRows as { key: string; value: string | null }[]) ?? []).map((row) => [row.key, row.value]));
+  const defaultParticle = resolveParticleStyle(settings.hero_particle_style ?? 'orbs');
+  const heroLayout = resolveHeroLayout(settings.hero_layout);
 
   return (
     <>
       <PageHeader
         title="Hero slider"
-        description="Choose which course images appear on the homepage hero. Each slide can use a different particle animation."
+        description="Pick a layout, then choose which course images appear on the homepage hero."
         action={
           <FormModal
             title="Add featured course"
@@ -51,6 +55,16 @@ export default async function HeroSlidesPage() {
           </FormModal>
         }
       />
+
+      <Card className="mb-6">
+        <CardHeader
+          title="Hero layout"
+          description="Images only, text with images, or a horizontal row of featured courses."
+        />
+        <CardBody>
+          <HeroLayoutForm value={heroLayout} />
+        </CardBody>
+      </Card>
 
       <Card className="mb-6">
         <CardHeader

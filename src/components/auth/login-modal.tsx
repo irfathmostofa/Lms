@@ -8,6 +8,7 @@ import { signInModalAction } from '@/actions/auth';
 import { PasswordField } from '@/components/auth/password-field';
 import { ForgotPasswordForm } from '@/components/auth/forgot-password-form';
 import { LoginGreeting } from '@/components/auth/login-greeting';
+import { useLocale } from '@/components/i18n/locale-provider';
 import type { UserRole } from '@/lib/types';
 
 export interface LoginModalResult {
@@ -17,9 +18,10 @@ export interface LoginModalResult {
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const { t } = useLocale();
   return (
     <Button type="submit" className="w-full" size="lg" disabled={pending}>
-      {pending ? 'Signing in...' : 'Sign in and continue'}
+      {pending ? t('auth.signingIn') : t('auth.signInContinueCta')}
     </Button>
   );
 }
@@ -46,6 +48,7 @@ export function LoginModal({
   onClose: () => void;
   onSuccess: (result: LoginModalResult) => void;
 }) {
+  const { t } = useLocale();
   const [view, setView] = useState<'login' | 'forgot'>('login');
   const [state, formAction] = useFormState(signInModalAction, null);
 
@@ -94,10 +97,10 @@ export function LoginModal({
               ) : (
                 <>
                   <h2 id="login-modal-title" className="mt-1 text-lg font-bold tracking-tight text-slate-900">
-                    Reset your password
+                    {t('auth.recoveryTitle')}
                   </h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    Enter your account email and we will send a reset link.
+                    {t('auth.recoveryBody')}
                   </p>
                 </>
               )}
@@ -106,7 +109,7 @@ export function LoginModal({
               type="button"
               onClick={onClose}
               className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-              aria-label="Close sign in dialog"
+              aria-label={t('auth.closeSignIn')}
             >
               <CloseIcon />
             </button>
@@ -122,7 +125,7 @@ export function LoginModal({
                 </p>
               ) : null}
               <input type="hidden" name="next" value={next ?? ''} />
-              <Field label="Email address">
+              <Field label={t('auth.email')}>
                 <Input
                   name="email"
                   type="email"
@@ -133,11 +136,11 @@ export function LoginModal({
                 />
               </Field>
               <PasswordField
-                label="Password"
+                label={t('auth.password')}
                 name="password"
                 autoComplete="current-password"
                 required
-                placeholder="Enter your password"
+                placeholder={t('auth.enterPassword')}
               />
               <div className="flex justify-end">
                 <button
@@ -145,14 +148,14 @@ export function LoginModal({
                   onClick={() => setView('forgot')}
                   className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline"
                 >
-                  Forgot password?
+                  {t('auth.forgot')}
                 </button>
               </div>
               <SubmitButton />
               <p className="text-center text-sm text-slate-500">
-                No account?{' '}
+                {t('auth.noAccount')}{' '}
                 <Link href="/register" className="font-semibold text-slate-900 hover:underline">
-                  Create one
+                  {t('auth.createOne')}
                 </Link>
               </p>
             </form>

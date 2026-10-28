@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { getRequestDictionary } from '@/lib/locale';
+import { translate } from '@/lib/i18n';
 
 function ArrowIcon() {
   return (
@@ -23,6 +25,7 @@ export function HomeCta({
   supportEmail?: string | null;
   supportPhone?: string | null;
 }) {
+  const dict = getRequestDictionary();
   return (
     <section className="bg-white px-6 pb-16 pt-4 sm:pb-20">
       <div className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl bg-slate-950 px-6 py-14 text-white sm:px-12 sm:py-16">
@@ -36,14 +39,13 @@ export function HomeCta({
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-brand-100 backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Start today
+              {dict.cta.eyebrow}
             </span>
             <h2 className="mt-5 max-w-xl text-3xl font-semibold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-              Ready to learn something that moves your career forward?
+              {dict.cta.title}
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-300 sm:text-base">
-              Join {siteName} and get structured courses, practical projects and a clear path from
-              your first lesson to your next certificate.
+              {translate(dict, 'cta.body', { siteName })}
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -51,23 +53,21 @@ export function HomeCta({
                 href="/register"
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
-                Create free account
+                {dict.cta.createAccount}
                 <ArrowIcon />
               </Link>
               <Link
                 href="/courses"
                 className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/25 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
               >
-                Browse courses
+                {dict.cta.browseCourses}
               </Link>
             </div>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-            <p className="text-sm font-semibold text-white">Need help choosing a course?</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">
-              Talk to our team about your goals, schedule and the right learning format for you.
-            </p>
+            <p className="text-sm font-semibold text-white">{dict.cta.helpTitle}</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">{dict.cta.helpBody}</p>
             <div className="mt-5 space-y-3 text-sm">
               {supportEmail ? (
                 <a
@@ -122,7 +122,7 @@ export function HomeCta({
                     />
                   </svg>
                 </span>
-                <span>Payment and enrollment help</span>
+                <span>{dict.cta.paymentHelp}</span>
               </Link>
             </div>
           </div>

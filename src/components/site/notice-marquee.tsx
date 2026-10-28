@@ -7,13 +7,13 @@ export function NoticeMarquee({ notices }: { notices: SiteNotice[] }) {
   const items = [...notices, ...notices];
 
   return (
-    <div className="border-b border-white/10 bg-slate-950 text-white">
+    <div className="border-b border-brand-700/20 bg-brand-600 text-white">
       <div className="notice-marquee py-1.5" aria-label="Site notices">
         <div className="notice-marquee-track">
           {items.map((notice, index) => {
             const content = (
               <span className="inline-flex items-center gap-2 px-8 text-sm font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden="true" />
+                <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden="true" />
                 {notice.message}
               </span>
             );

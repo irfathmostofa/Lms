@@ -1687,6 +1687,7 @@ insert into public.settings (group_name, key, value, value_type, is_public) valu
   ('academic','attendance_pass_percent','75','number',true),
   ('academic','default_pass_marks','40','number',false),
   ('website','hero_particle_style','orbs','text',true),
+  ('website','hero_layout','text','text',true),
   ('store','shipping_flat','60','number',true),
   ('store','free_shipping_min','1500','number',true)
 on conflict (key) do nothing;

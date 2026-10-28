@@ -4,17 +4,20 @@ import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Button, Field, Input } from '@/components/ui';
 import { requestPasswordResetAction } from '@/actions/auth';
+import { useLocale } from '@/components/i18n/locale-provider';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const { t } = useLocale();
   return (
     <Button type="submit" className="w-full" size="lg" disabled={pending}>
-      {pending ? 'Sending link...' : 'Send reset link'}
+      {pending ? t('auth.sendingLink') : t('auth.sendReset')}
     </Button>
   );
 }
 
 export function ForgotPasswordForm({ onBack }: { onBack?: () => void }) {
+  const { t } = useLocale();
   const [state, formAction] = useFormState(requestPasswordResetAction, null);
 
   return (
@@ -27,7 +30,7 @@ export function ForgotPasswordForm({ onBack }: { onBack?: () => void }) {
           {state.success}
         </p>
       ) : null}
-      <Field label="Email address" hint="We will send a secure reset link to this address.">
+      <Field label={t('auth.email')} hint={t('auth.emailHint')}>
         <Input
           name="email"
           type="email"
@@ -43,14 +46,14 @@ export function ForgotPasswordForm({ onBack }: { onBack?: () => void }) {
           onClick={onBack}
           className="block w-full text-center text-sm font-semibold text-slate-900 hover:underline"
         >
-          Back to sign in
+          {t('auth.backToSignIn')}
         </button>
       ) : (
         <Link
           href="/login"
           className="block text-center text-sm font-semibold text-slate-900 hover:underline"
         >
-          Back to sign in
+          {t('auth.backToSignIn')}
         </Link>
       )}
     </form>

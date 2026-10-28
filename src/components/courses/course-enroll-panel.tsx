@@ -7,6 +7,7 @@ import { enrollCourseAction } from '@/actions/courses';
 import { LoginModal, type LoginModalResult } from '@/components/auth/login-modal';
 import { ROLE_HOME } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
+import { useLocale } from '@/components/i18n/locale-provider';
 import type { UserRole } from '@/lib/types';
 
 export function CourseEnrollPanel({
@@ -25,6 +26,7 @@ export function CourseEnrollPanel({
   enrollmentStatus: string | null;
 }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [showLogin, setShowLogin] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,11 +48,11 @@ export function CourseEnrollPanel({
       }
       router.refresh();
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError(t('enroll.error'));
     } finally {
       setBusy(false);
     }
-  }, [courseId, router]);
+  }, [courseId, router, t]);
 
   const handleLoginSuccess = useCallback(
     (result: LoginModalResult) => {
@@ -79,12 +81,12 @@ export function CourseEnrollPanel({
             setShowLogin(true);
           }}
         >
-          Enroll now
+          {t('enroll.enrollNow')}
         </Button>
         <p className="text-center text-xs text-slate-500">
           {price > 0
-            ? `Sign in to enroll. Course fee ${formatCurrency(price)}.`
-            : 'Free course. Sign in to start learning.'}
+            ? t('enroll.signInFee', { price: formatCurrency(price) })
+            : t('enroll.signInFree')}
         </p>
         {showLogin ? (
           <LoginModal
@@ -102,10 +104,10 @@ export function CourseEnrollPanel({
     return (
       <div className="space-y-3">
         <ButtonLink href={ROLE_HOME[currentRole] ?? '/dashboard'} size="lg" className="w-full">
-          Open my dashboard
+          {t('enroll.openDashboard')}
         </ButtonLink>
         <p className="text-center text-xs text-slate-500">
-          Enrollment is available for student accounts.
+          {t('enroll.staffOnly')}
         </p>
       </div>
     );
@@ -115,17 +117,17 @@ export function CourseEnrollPanel({
     return (
       <div className="space-y-3">
         <Badge tone="green">
-          {enrollmentStatus === 'completed' ? 'Completed' : 'Enrolled'}
+          {enrollmentStatus === 'completed' ? t('enroll.completed') : t('enroll.enrolled')}
         </Badge>
         <ButtonLink
           href={`/dashboard/my-learning/${courseId}`}
           size="lg"
           className="w-full"
         >
-          Go to my learning
+          {t('enroll.goLearning')}
         </ButtonLink>
         <p className="text-center text-xs text-slate-500">
-          You already have access to this course.
+          {t('enroll.alreadyAccess')}
         </p>
       </div>
     );
@@ -134,12 +136,12 @@ export function CourseEnrollPanel({
   if (enrollmentStatus === 'pending') {
     return (
       <div className="space-y-3">
-        <Badge tone="amber">Payment pending</Badge>
+        <Badge tone="amber">{t('enroll.paymentPending')}</Badge>
         <ButtonLink href="/dashboard/my-fees" size="lg" className="w-full">
-          Complete payment
+          {t('enroll.completePayment')}
         </ButtonLink>
         <p className="text-center text-xs text-slate-500">
-          Your enrollment is saved. Access activates after the payment is verified.
+          {t('enroll.pendingBody')}
         </p>
       </div>
     );
@@ -149,7 +151,7 @@ export function CourseEnrollPanel({
     <div className="space-y-3">
       {enrollmentStatus === 'cancelled' || enrollmentStatus === 'expired' ? (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-          Your previous enrollment was {enrollmentStatus}. You can enroll again below.
+          {t('enroll.previousCancelled', { status: enrollmentStatus })}
         </p>
       ) : null}
       {error ? (
@@ -162,12 +164,12 @@ export function CourseEnrollPanel({
         onClick={() => void enroll()}
         disabled={busy}
       >
-        {busy ? 'Enrolling...' : 'Enroll now'}
+        {busy ? t('enroll.enrolling') : t('enroll.enrollNow')}
       </Button>
       <p className="text-center text-xs text-slate-500">
         {price > 0
-          ? `Enroll now and pay ${formatCurrency(price)} from your fees page.`
-          : 'Free course. Enrollment gives you immediate access.'}
+          ? t('enroll.payFromFees', { price: formatCurrency(price) })
+          : t('enroll.freeAccess')}
       </p>
     </div>
   );
