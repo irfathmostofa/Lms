@@ -250,7 +250,7 @@ export async function claimFreeResourceAction(_prev: unknown, formData: FormData
   if (granted.error) return { error: granted.error };
 
   revalidatePath('/dashboard/store');
-  return { success: 'Resource unlocked. Use Download in My resources.' };
+    return { success: 'Resource unlocked. Read or download it from My resources.' };
 }
 
 export async function updateProfileAction(formData: FormData) {

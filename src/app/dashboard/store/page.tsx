@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requireUser } from '@/lib/auth';
 import { Card, CardBody, CardHeader, EmptyState, PageHeader, Table, Td, Th, Badge } from '@/components/ui';
@@ -69,7 +70,7 @@ export default async function StorePage() {
         <Card className="mb-6">
           <CardHeader
             title="My resources"
-            description="Files you already have access to. Open a download to use it."
+            description="Purchased PDFs can be read online or downloaded."
           />
           <CardBody className="p-0">
             <Table>
@@ -90,17 +91,26 @@ export default async function StorePage() {
                         <Badge>{product.type === 'physical' ? 'printed' : 'digital'}</Badge>
                       </Td>
                       <Td>
-                        {fileUrl ? (
-                          <a
-                            href={fileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm font-medium text-brand-600 hover:underline"
-                          >
-                            Download
-                          </a>
-                        ) : product.type === 'physical' ? (
+                        {product.type === 'physical' ? (
                           <span className="text-xs text-slate-500">Ships after payment</span>
+                        ) : fileUrl ? (
+                          <div className="flex flex-wrap items-center gap-3">
+                            <Link
+                              href={`/dashboard/store/${product.id}`}
+                              className="text-sm font-medium text-brand-600 hover:underline"
+                            >
+                              Read PDF
+                            </Link>
+                            <a
+                              href={fileUrl}
+                              download
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm font-medium text-slate-600 hover:underline"
+                            >
+                              Download
+                            </a>
+                          </div>
                         ) : (
                           <span className="text-xs text-slate-500">File not attached yet</span>
                         )}

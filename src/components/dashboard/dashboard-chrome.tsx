@@ -84,6 +84,7 @@ export function DashboardChrome({
 }) {
   const pathname = usePathname();
   const isClassroom = /^\/dashboard\/my-learning\/[^/]+$/.test(pathname);
+  const isPdfReader = /^\/dashboard\/store\/[^/]+$/.test(pathname);
   const [open, setOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -148,7 +149,7 @@ export function DashboardChrome({
     menuButtonRef.current?.focus();
   }
 
-  if (isClassroom) {
+  if (isClassroom || isPdfReader) {
     return <>{children}</>;
   }
 

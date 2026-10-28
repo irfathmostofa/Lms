@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Button, Card, CardBody, EmptyState } from '@/components/ui';
@@ -85,18 +86,33 @@ export function StoreGrid({
                   <p className="text-xs text-slate-400">{product.stock} in stock</p>
                 ) : null}
                 {owned ? (
-                  fileUrl ? (
-                    <a
-                      href={fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Download
-                    </a>
+                  product.type === 'digital' ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href={`/dashboard/store/${product.id}`}
+                        className="inline-flex min-h-10 items-center justify-center rounded-lg bg-brand-600 px-3 text-sm font-medium text-white transition hover:bg-brand-700"
+                      >
+                        Read PDF
+                      </Link>
+                      {fileUrl ? (
+                        <a
+                          href={fileUrl}
+                          download
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Download
+                        </a>
+                      ) : (
+                        <Button variant="outline" className="w-full" disabled>
+                          No file
+                        </Button>
+                      )}
+                    </div>
                   ) : (
                     <Button variant="outline" className="w-full" disabled>
-                      Access granted
+                      Ships after payment
                     </Button>
                   )
                 ) : isFree && product.type === 'digital' ? (
