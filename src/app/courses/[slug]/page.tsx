@@ -270,7 +270,11 @@ export default async function CourseDetailPage({
           <div className="lg:hidden">{buyBox}</div>
           {videoId ? (
             <div className="mt-6 overflow-hidden rounded-xl lg:mt-0">
-              <LazyYouTube videoId={videoId} title={`${course.title} intro video`} />
+              <LazyYouTube
+                videoId={videoId}
+                title={`${course.title} intro video`}
+                watermark={course.author_name ? `Preview · ${course.author_name}` : 'Protected preview'}
+              />
             </div>
           ) : null}
 

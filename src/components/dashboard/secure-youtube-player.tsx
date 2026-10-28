@@ -24,6 +24,7 @@ interface YouTubeApi {
       videoId: string;
       width: string | number;
       height: string | number;
+      host?: string;
       playerVars: Record<string, string | number>;
       events: {
         onReady: (event: { target: YouTubePlayer }) => void;
@@ -215,6 +216,7 @@ export function SecureYouTubePlayer({
 }) {
   const rawId = useId();
   const containerId = `yt-${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
+  const validVideo = /^[a-zA-Z0-9_-]{11}$/.test(videoId);
   const shellRef = useRef<HTMLDivElement | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
@@ -258,6 +260,7 @@ export function SecureYouTubePlayer({
           videoId,
           width: '100%',
           height: '100%',
+          host: 'https://www.youtube-nocookie.com',
           playerVars: {
             autoplay: 1,
             controls: 0,
@@ -415,17 +418,30 @@ export function SecureYouTubePlayer({
     return () => node.removeEventListener('keydown', onKeyDown);
   }, [current, duration, seek, started, toggleFullscreen, toggleMute, togglePlay]);
 
+  if (!validVideo) {
+    return (
+      <div
+        className={`flex items-center justify-center bg-slate-900 text-sm text-white/70 ${
+          fill ? 'h-full rounded-none' : 'aspect-video rounded-lg'
+        }`}
+      >
+        This video is unavailable.
+      </div>
+    );
+  }
+
   if (!started) {
     return (
       <div
         className={`relative select-none overflow-hidden ${fill ? 'h-full rounded-none' : 'rounded-lg'}`}
         onContextMenu={(event) => event.preventDefault()}
         onDragStart={(event) => event.preventDefault()}
+        onCopy={(event) => event.preventDefault()}
       >
         <button
           type="button"
           onClick={() => setStarted(true)}
-          className={`group relative block w-full overflow-hidden bg-slate-900 ${fill ? 'h-full' : 'aspect-video'}`}
+          className={`group relative z-10 block w-full overflow-hidden bg-slate-900 ${fill ? 'h-full' : 'aspect-video'}`}
           aria-label={`Play ${title}`}
         >
           <Image
@@ -434,14 +450,14 @@ export function SecureYouTubePlayer({
             fill
             sizes="(max-width: 1024px) 100vw, 66vw"
             draggable={false}
-            className="object-contain opacity-80 transition group-hover:opacity-100"
+            className="pointer-events-none object-contain opacity-80 transition group-hover:opacity-100"
           />
-          <span className="absolute inset-0 flex items-center justify-center">
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-brand-700 shadow-lg transition group-hover:scale-105">
+          <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/20">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-brand-700 shadow-xl ring-4 ring-white/30 transition group-hover:scale-110">
               <PlayIcon />
             </span>
           </span>
-          <span className="pointer-events-none absolute bottom-3 left-3 text-[10px] font-medium text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
+          <span className="pointer-events-none absolute bottom-3 left-3 z-10 text-[10px] font-medium text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
             Protected playback for {watermark}
           </span>
         </button>
@@ -459,6 +475,7 @@ export function SecureYouTubePlayer({
       }`}
       onContextMenu={(event) => event.preventDefault()}
       onDragStart={(event) => event.preventDefault()}
+      onCopy={(event) => event.preventDefault()}
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden bg-black">
         <div

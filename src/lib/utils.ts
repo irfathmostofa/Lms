@@ -47,28 +47,34 @@ const YOUTUBE_ID = /^[a-zA-Z0-9_-]{11}$/;
 
 /**
  * Accepts a raw YouTube id or any common YouTube URL and returns the id.
- * Unknown values are returned unchanged so admins can fix them later.
+ * Unknown values return an empty string so the player never loads a bad id.
  */
+function normalizeYoutubeId(value: string) {
+  const id = value.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 11);
+  return YOUTUBE_ID.test(id) ? id : '';
+}
+
 export function youtubeIdFromInput(value: string | null | undefined) {
   const input = (value ?? '').trim();
   if (!input) return '';
-  if (YOUTUBE_ID.test(input)) return input;
+  const direct = normalizeYoutubeId(input);
+  if (direct) return direct;
 
   try {
     const url = new URL(input);
     if (url.hostname.includes('youtu.be')) {
-      return url.pathname.split('/').filter(Boolean)[0] ?? input;
+      return normalizeYoutubeId(url.pathname.split('/').filter(Boolean)[0] ?? '');
     }
     const v = url.searchParams.get('v');
-    if (v) return v;
+    if (v) return normalizeYoutubeId(v);
     const parts = url.pathname.split('/').filter(Boolean);
     const marker = parts.findIndex((part) => ['embed', 'shorts', 'live'].includes(part));
-    if (marker >= 0 && parts[marker + 1]) return parts[marker + 1];
+    if (marker >= 0 && parts[marker + 1]) return normalizeYoutubeId(parts[marker + 1]);
   } catch {
-    return input;
+    return '';
   }
 
-  return input;
+  return '';
 }
 
 export function toDateTimeLocal(value: string | null | undefined) {

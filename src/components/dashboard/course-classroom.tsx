@@ -255,13 +255,18 @@ export function CourseClassroom({
                   />
                 </div>
               ) : activeLesson.type === 'image' && activeLesson.media_url ? (
-                <div className="absolute inset-0">
+                <div
+                  className="absolute inset-0 select-none"
+                  onContextMenu={(event) => event.preventDefault()}
+                  onDragStart={(event) => event.preventDefault()}
+                >
                   <Image
                     src={activeLesson.media_url}
                     alt={activeLesson.title}
                     fill
                     sizes="100vw"
-                    className="object-contain"
+                    draggable={false}
+                    className="pointer-events-none object-contain"
                   />
                 </div>
               ) : (
