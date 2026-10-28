@@ -26,6 +26,8 @@ interface OrderRow {
   total: number;
   created_at: string;
   shipping_name: string | null;
+  shipping_phone: string | null;
+  shipping_address: string | null;
   profiles: { full_name: string | null; email: string | null } | null;
 }
 
@@ -49,7 +51,7 @@ export default async function OrdersPage() {
   const supabase = createClient();
   const { data } = await supabase
     .from('orders')
-    .select('id, order_no, status, total, created_at, shipping_name, profiles!orders_user_id_fkey(full_name, email)')
+    .select('id, order_no, status, total, created_at, shipping_name, shipping_phone, shipping_address, profiles!orders_user_id_fkey(full_name, email)')
     .order('created_at', { ascending: false })
     .limit(100);
 
@@ -59,7 +61,7 @@ export default async function OrdersPage() {
     <>
       <PageHeader
         title="Store orders"
-        description="Track physical book orders and digital purchases. Paid orders grant product access automatically."
+        description="Track digital purchases and printed or tool shipments. Paid digital orders grant download access automatically."
       />
 
       <Card>
@@ -75,6 +77,7 @@ export default async function OrdersPage() {
                 <tr>
                   <Th>Order</Th>
                   <Th>Customer</Th>
+                  <Th>Ship to</Th>
                   <Th>Total</Th>
                   <Th>Status</Th>
                   <Th>Placed</Th>
@@ -87,6 +90,11 @@ export default async function OrdersPage() {
                     <Td className="font-mono text-xs">{order.order_no}</Td>
                     <Td className="font-medium text-slate-900">
                       {order.profiles?.full_name ?? order.profiles?.email ?? '-'}
+                    </Td>
+                    <Td className="max-w-xs text-xs text-slate-500">
+                      {order.shipping_address
+                        ? `${order.shipping_name ?? ''} · ${order.shipping_phone ?? ''} · ${order.shipping_address}`
+                        : 'Digital only'}
                     </Td>
                     <Td>{formatCurrency(order.total)}</Td>
                     <Td>

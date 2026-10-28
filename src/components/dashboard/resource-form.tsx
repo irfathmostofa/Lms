@@ -50,7 +50,7 @@ export function ResourceForm({
       <Field label="Type">
         <Select name="type" defaultValue={product?.type ?? 'digital'}>
           <option value="digital">Digital PDF</option>
-          <option value="physical">Printed book</option>
+          <option value="physical">Printed book / tool</option>
         </Select>
       </Field>
       <Field label="Price (BDT)">

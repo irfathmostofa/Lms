@@ -1253,6 +1253,8 @@ function revalidateResources() {
   revalidateTag(CACHE_TAGS.stats);
   revalidatePath('/dashboard/resources');
   revalidatePath('/dashboard/store');
+  revalidatePath('/dashboard/cart');
+  revalidatePath('/dashboard/downloads');
   revalidatePath('/');
 }
 

@@ -54,7 +54,9 @@ export async function submitManualPaymentAction(_prev: unknown, formData: FormDa
 
   revalidatePath('/dashboard/my-fees');
   revalidatePath('/dashboard/store');
-  return { success: 'Payment submitted. It will appear once an admin verifies it.' };
+  revalidatePath('/dashboard/cart');
+  revalidatePath('/dashboard/downloads');
+  return { success: 'Payment submitted. Digital files appear on Downloads after an admin verifies it.' };
 }
 
 export async function submitAssessmentAction(_prev: unknown, formData: FormData) {
@@ -185,16 +187,47 @@ async function grantDigitalAccess(userId: string, orderId: string, productIds: s
   return { error: null };
 }
 
+function revalidateStore() {
+  revalidatePath('/dashboard/store');
+  revalidatePath('/dashboard/cart');
+  revalidatePath('/dashboard/downloads');
+}
+
 export async function placeOrderAction(_prev: unknown, formData: FormData) {
   const ctx = await requireUser();
   const supabase = createClient();
 
-  const productIds = formData.getAll('product_id').map(String).filter(Boolean);
+  const productIds = [...new Set(formData.getAll('product_id').map(String).filter(Boolean))];
   const items = productIds.map((productId) => ({ product_id: productId, quantity: 1 }));
 
   if (items.length === 0) return { error: 'Your cart is empty.' };
 
-  const { data: orderId, error } = await supabase.rpc('place_order', { p_items: items });
+  const shippingName = str(formData, 'shipping_name') || null;
+  const shippingPhone = str(formData, 'shipping_phone') || null;
+  const shippingAddress = str(formData, 'shipping_address') || null;
+
+  const { data: products, error: productError } = await supabase
+    .from('products')
+    .select('id, type, is_active')
+    .in('id', productIds);
+  if (productError) return { error: productError.message };
+
+  const catalog = (products as { id: string; type: string; is_active: boolean }[]) ?? [];
+  if (catalog.length !== productIds.length || catalog.some((row) => !row.is_active)) {
+    return { error: 'One or more items are no longer available.' };
+  }
+
+  const needsShipping = catalog.some((row) => row.type === 'physical');
+  if (needsShipping && (!shippingName || !shippingPhone || !shippingAddress)) {
+    return { error: 'Enter name, phone and address so printed items and tools can be shipped.' };
+  }
+
+  const { data: orderId, error } = await supabase.rpc('place_order', {
+    p_items: items,
+    p_shipping_name: shippingName,
+    p_shipping_phone: shippingPhone,
+    p_shipping_address: shippingAddress,
+  });
   if (error) return { error: error.message };
 
   const { data: order } = await supabase
@@ -206,13 +239,23 @@ export async function placeOrderAction(_prev: unknown, formData: FormData) {
   if (order && Number(order.total) <= 0) {
     const granted = await grantDigitalAccess(ctx.userId, order.id, productIds);
     if (granted.error) return { error: granted.error };
-    revalidatePath('/dashboard/store');
-    return { success: 'Resource unlocked. Open it from My resources below.' };
+    revalidateStore();
+    return {
+      success: 'Order placed. Free digital files are on the Downloads page.',
+      orderId: order.id,
+      total: 0,
+      payNow: false,
+    };
   }
 
-  revalidatePath('/dashboard/store');
+  revalidateStore();
   revalidatePath('/dashboard/my-fees');
-  return { success: 'Order placed. Submit payment below to unlock your items.' };
+  return {
+    success: 'Order placed. Pay for every item in this cart in one payment.',
+    orderId: order?.id ?? (orderId as string),
+    total: Number(order?.total ?? 0),
+    payNow: true,
+  };
 }
 
 export async function claimFreeResourceAction(_prev: unknown, formData: FormData) {
@@ -237,7 +280,7 @@ export async function claimFreeResourceAction(_prev: unknown, formData: FormData
     .eq('product_id', productId)
     .maybeSingle();
   if (existing) {
-    revalidatePath('/dashboard/store');
+    revalidateStore();
     return { success: 'You already have access to this resource.' };
   }
 
@@ -249,8 +292,8 @@ export async function claimFreeResourceAction(_prev: unknown, formData: FormData
   const granted = await grantDigitalAccess(ctx.userId, orderId as string, [productId]);
   if (granted.error) return { error: granted.error };
 
-  revalidatePath('/dashboard/store');
-    return { success: 'Resource unlocked. Read or download it from My resources.' };
+  revalidateStore();
+  return { success: 'Resource unlocked. Open it from Downloads.' };
 }
 
 export async function updateProfileAction(formData: FormData) {

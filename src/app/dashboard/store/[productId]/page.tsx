@@ -37,10 +37,10 @@ export default async function ResourceReaderPage({ params }: { params: { product
         <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
           <h1 className="text-lg font-semibold text-slate-900">{resource.name}</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Purchase this PDF first. After payment is verified, you can read and download it here.
+            Purchase this PDF first. After payment is verified, the file appears on Downloads.
           </p>
           <ButtonLink href="/dashboard/store" className="mt-5">
-            Back to resources
+            Back to store
           </ButtonLink>
         </div>
       </div>
@@ -56,8 +56,8 @@ export default async function ResourceReaderPage({ params }: { params: { product
           <p className="mt-2 text-sm text-slate-500">
             You own this resource, but a PDF file has not been attached yet. Ask an admin to add the download URL.
           </p>
-          <Link href="/dashboard/store" className="mt-5 inline-flex text-sm font-medium text-brand-600 hover:underline">
-            Back to resources
+          <Link href="/dashboard/downloads" className="mt-5 inline-flex text-sm font-medium text-brand-600 hover:underline">
+            Back to downloads
           </Link>
         </div>
       </div>

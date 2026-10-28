@@ -13,7 +13,7 @@ function viewerSrc(fileUrl: string) {
 export function PdfReader({
   title,
   fileUrl,
-  backHref = '/dashboard/store',
+  backHref = '/dashboard/downloads',
 }: {
   title: string;
   fileUrl: string;
@@ -27,7 +27,7 @@ export function PdfReader({
       <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-white/10 bg-slate-950/95 px-4 py-3 backdrop-blur">
         <div className="min-w-0">
           <Link href={backHref} className="text-xs font-medium text-white/60 hover:text-white">
-            Back to resources
+            Back to downloads
           </Link>
           <h1 className="truncate text-sm font-semibold sm:text-base">{title}</h1>
         </div>
