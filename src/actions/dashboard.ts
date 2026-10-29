@@ -1168,20 +1168,66 @@ export async function verifyPaymentAction(_prev: unknown, formData: FormData) {
   const id = str(formData, 'id');
   if (!id) return { error: 'Missing payment reference.' };
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('payments')
     .update({
       status: 'verified',
       verified_by: ctx.userId,
       verified_at: new Date().toISOString(),
     })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id, order_id, student_id')
+    .maybeSingle();
 
   if (error) return { error: error.message };
+
+  const payment =
+    updated ??
+    (
+      await supabase.from('payments').select('id, order_id, student_id').eq('id', id).maybeSingle()
+    ).data;
+
+  if (payment?.order_id) {
+    const granted = await supabase.rpc('grant_order_product_access', { p_order: payment.order_id });
+    if (granted.error && payment.student_id) {
+      try {
+        const admin = createAdminClient();
+        const { data: items } = await admin
+          .from('order_items')
+          .select('product_id')
+          .eq('order_id', payment.order_id);
+        const productIds = ((items as { product_id: string }[]) ?? []).map((row) => row.product_id);
+        if (productIds.length > 0) {
+          const { data: products } = await admin.from('products').select('id, type').in('id', productIds);
+          const digitalIds = ((products as { id: string; type: string }[]) ?? [])
+            .filter((row) => row.type === 'digital')
+            .map((row) => row.id);
+          if (digitalIds.length > 0) {
+            await admin.from('product_access').upsert(
+              digitalIds.map((productId) => ({
+                product_id: productId,
+                user_id: payment.student_id,
+                order_id: payment.order_id,
+                source: 'purchase',
+              })),
+              { onConflict: 'product_id,user_id' },
+            );
+          }
+        }
+        await admin.from('orders').update({ status: 'paid' }).eq('id', payment.order_id).eq('status', 'pending');
+      } catch {
+        // Access is still granted by the payments trigger when it exists.
+      }
+    }
+  }
 
   revalidatePath('/dashboard/payments');
   revalidatePath('/dashboard/finance');
   revalidatePath('/dashboard');
+  revalidatePath('/dashboard/downloads');
+  revalidatePath('/dashboard/store');
+  revalidatePath('/dashboard/cart');
+  revalidatePath('/dashboard/orders');
   return { success: 'Payment verified.' };
 }
 

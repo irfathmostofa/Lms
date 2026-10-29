@@ -42,8 +42,7 @@ export default async function DownloadsPage() {
   const ctx = await requireUser();
   const supabase = createClient();
 
-  const [productsRes, accessRes, ordersRes, filesRes] = await Promise.all([
-    supabase.from('products').select('*'),
+  const [accessRes, ordersRes, paymentsRes] = await Promise.all([
     supabase.from('product_access').select('product_id').eq('user_id', ctx.userId),
     supabase
       .from('orders')
@@ -51,27 +50,46 @@ export default async function DownloadsPage() {
       .eq('user_id', ctx.userId)
       .order('created_at', { ascending: false })
       .limit(30),
-    supabase.from('product_files').select('product_id, file_url, title'),
+    supabase.from('payments').select('order_id, status').eq('student_id', ctx.userId).eq('status', 'verified'),
+  ]);
+
+  const accessIds = [...new Set(((accessRes.data as { product_id: string }[]) ?? []).map((row) => row.product_id))];
+  const orders = (ordersRes.data as OrderRow[]) ?? [];
+  const shippableStatuses = new Set(['paid', 'processing', 'shipped', 'delivered']);
+  const unlockedOrderIds = [
+    ...orders.filter((order) => shippableStatuses.has(order.status)).map((order) => order.id),
+    ...((paymentsRes.data as { order_id: string | null }[]) ?? [])
+      .map((row) => row.order_id)
+      .filter((id): id is string => Boolean(id)),
+  ];
+  const uniqueOrderIds = [...new Set(unlockedOrderIds)];
+
+  const { data: itemData } =
+    uniqueOrderIds.length > 0
+      ? await supabase.from('order_items').select('product_id, product_name, order_id').in('order_id', uniqueOrderIds)
+      : { data: [] as OrderItemRow[] };
+  const orderItems = (itemData as OrderItemRow[]) ?? [];
+  const productIds = [...new Set([...accessIds, ...orderItems.map((item) => item.product_id)])];
+
+  const [productsRes, filesRes] = await Promise.all([
+    productIds.length > 0
+      ? supabase.from('products').select('*').in('id', productIds)
+      : Promise.resolve({ data: [] as Product[] }),
+    productIds.length > 0
+      ? supabase.from('product_files').select('product_id, file_url, title').in('product_id', productIds)
+      : Promise.resolve({ data: [] as ProductFileRow[] }),
   ]);
 
   const products = (productsRes.data as Product[]) ?? [];
-  const accessIds = new Set(((accessRes.data as { product_id: string }[]) ?? []).map((row) => row.product_id));
-  const digital = products.filter((product) => product.type === 'digital' && accessIds.has(product.id));
-  const orders = (ordersRes.data as OrderRow[]) ?? [];
+  const productById = new Map(products.map((product) => [product.id, product]));
+  const digitalIds = new Set([
+    ...accessIds.filter((id) => (productById.get(id)?.type ?? 'digital') === 'digital'),
+    ...orderItems.filter((item) => productById.get(item.product_id)?.type === 'digital').map((item) => item.product_id),
+  ]);
+  const digital = products.filter((product) => digitalIds.has(product.id) && product.type === 'digital');
   const files = (filesRes.data as ProductFileRow[]) ?? [];
   const fileUrls = Object.fromEntries(files.map((row) => [row.product_id, row.file_url]));
-
-  const shippableStatuses = new Set(['paid', 'processing', 'shipped', 'delivered']);
-  const paidOrderIds = orders.filter((order) => shippableStatuses.has(order.status)).map((order) => order.id);
-  const { data: itemData } =
-    paidOrderIds.length > 0
-      ? await supabase.from('order_items').select('product_id, product_name, order_id').in('order_id', paidOrderIds)
-      : { data: [] as OrderItemRow[] };
-  const productById = new Map(products.map((product) => [product.id, product]));
-  const physical = ((itemData as OrderItemRow[]) ?? []).filter((item) => {
-    const product = productById.get(item.product_id);
-    return product?.type === 'physical';
-  });
+  const physical = orderItems.filter((item) => productById.get(item.product_id)?.type === 'physical');
 
   return (
     <>

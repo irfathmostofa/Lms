@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Button, Card, CardBody, CardHeader, EmptyState, Field, Input, Textarea } from '@/components/ui';
 import { Modal } from '@/components/dashboard/modal';
 import { ManualPaymentForm } from '@/components/dashboard/manual-payment-form';
 import { placeOrderAction } from '@/actions/student';
-import { useCart } from '@/lib/cart';
+import { clearCart, useCart } from '@/lib/cart';
 import { formatCurrency } from '@/lib/utils';
 import type { Product } from '@/lib/types';
 
@@ -33,32 +34,35 @@ export function CartCheckout({
   paymentInstructions: string | null;
   pendingOrder: { id: string; order_no: string; total: number } | null;
 }) {
+  const router = useRouter();
   const { ids, ready, remove, clear } = useCart();
   const [orderState, orderAction] = useFormState(placeOrderAction, null);
   const [payOpen, setPayOpen] = useState(false);
   const [payOrder, setPayOrder] = useState<{ id: string; total: number } | null>(null);
+  const [paid, setPaid] = useState(false);
 
   const accessSet = useMemo(() => new Set(accessIds), [accessIds]);
   const items = useMemo(
-    () => products.filter((product) => ids.includes(product.id) && !accessSet.has(product.id)),
-    [products, ids, accessSet],
+    () =>
+      paid
+        ? []
+        : products.filter((product) => ids.includes(product.id) && !accessSet.has(product.id)),
+    [products, ids, accessSet, paid],
   );
 
-  useEffect(() => {
-    if (pendingOrder && ids.length === 0) {
-      setPayOrder({ id: pendingOrder.id, total: Number(pendingOrder.total) });
-      setPayOpen(true);
-    }
-  }, [pendingOrder, ids.length]);
+  const handlePaid = useCallback(() => {
+    clearCart();
+    clear();
+    setPaid(true);
+    setPayOpen(false);
+    router.refresh();
+  }, [clear, router]);
 
   useEffect(() => {
-    if (!orderState?.success && !orderState?.payNow) return;
-    if (orderState.payNow && orderState.orderId) {
-      setPayOrder({ id: orderState.orderId, total: Number(orderState.total ?? 0) });
-      setPayOpen(true);
-    }
-    clear();
-  }, [orderState, clear]);
+    if (!orderState?.payNow || !orderState.orderId) return;
+    setPayOrder({ id: orderState.orderId, total: Number(orderState.total ?? 0) });
+    setPayOpen(true);
+  }, [orderState]);
 
   const subtotal = items.reduce((sum, product) => sum + Number(product.price), 0);
   const needsShipping = items.some((product) => product.type === 'physical');
@@ -67,7 +71,7 @@ export function CartCheckout({
     return <EmptyState title="Loading cart..." />;
   }
 
-  if (items.length === 0 && !pendingOrder && !payOpen && !orderState?.success) {
+  if (items.length === 0 && !pendingOrder && !payOpen && !orderState?.success && !paid) {
     return (
       <EmptyState
         title="Cart is empty"
@@ -80,6 +84,14 @@ export function CartCheckout({
     <div className="space-y-6">
       {orderState?.error ? (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{orderState.error}</p>
+      ) : null}
+      {paid ? (
+        <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          Payment submitted. Digital files appear on Downloads after verification.{' '}
+          <Link href="/dashboard/downloads" className="font-medium underline">
+            Open Downloads
+          </Link>
+        </p>
       ) : null}
       {orderState?.success && !orderState.payNow ? (
         <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
@@ -153,7 +165,7 @@ export function CartCheckout({
         </Card>
       ) : null}
 
-      {pendingOrder ? (
+      {pendingOrder && !paid ? (
         <Card>
           <CardHeader
             title={`Unpaid order ${pendingOrder.order_no}`}
@@ -190,7 +202,12 @@ export function CartCheckout({
         onClose={() => setPayOpen(false)}
       >
         {payOrder ? (
-          <ManualPaymentForm orderId={payOrder.id} methods={methods} suggestedAmount={payOrder.total} />
+          <ManualPaymentForm
+            orderId={payOrder.id}
+            methods={methods}
+            suggestedAmount={payOrder.total}
+            onSuccess={handlePaid}
+          />
         ) : null}
       </Modal>
     </div>

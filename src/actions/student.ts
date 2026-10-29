@@ -54,7 +54,6 @@ export async function submitManualPaymentAction(_prev: unknown, formData: FormDa
 
   revalidatePath('/dashboard/my-fees');
   revalidatePath('/dashboard/store');
-  revalidatePath('/dashboard/cart');
   revalidatePath('/dashboard/downloads');
   return { success: 'Payment submitted. Digital files appear on Downloads after an admin verifies it.' };
 }
@@ -248,7 +247,8 @@ export async function placeOrderAction(_prev: unknown, formData: FormData) {
     };
   }
 
-  revalidateStore();
+  revalidatePath('/dashboard/store');
+  revalidatePath('/dashboard/downloads');
   revalidatePath('/dashboard/my-fees');
   return {
     success: 'Order placed. Pay for every item in this cart in one payment.',

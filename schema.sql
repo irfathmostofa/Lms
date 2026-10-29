@@ -1225,6 +1225,34 @@ begin
   return v_order;
 end $$;
 
+create or replace function public.grant_order_product_access(p_order uuid)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  v_user uuid;
+begin
+  if p_order is null then return; end if;
+  if auth.uid() is null then raise exception 'Not authenticated'; end if;
+  if not (select public.is_accountant()) then
+    raise exception 'Not allowed';
+  end if;
+
+  select user_id into v_user from public.orders where id = p_order;
+  if v_user is null then return; end if;
+
+  insert into public.product_access (product_id, user_id, order_id, source)
+  select oi.product_id, v_user, p_order, 'purchase'
+  from public.order_items oi
+  join public.products p on p.id = oi.product_id
+  where oi.order_id = p_order and p.type = 'digital'
+  on conflict (product_id, user_id) do nothing;
+
+  update public.orders
+    set status = case when status = 'pending' then 'paid' else status end,
+        updated_at = now()
+  where id = p_order;
+end $$;
+
 -- ============================================================================
 -- Row Level Security
 -- ============================================================================
@@ -1367,7 +1395,12 @@ create policy fee_records_write on public.fee_records
   for all using ((select public.is_accountant())) with check ((select public.is_accountant()));
 
 -- store ---------------------------------------------------------------------
-create policy products_read on public.products for select using (is_active or (select public.is_staff()));
+create policy products_read on public.products
+  for select using (
+    is_active
+    or (select public.is_staff())
+    or (select public.has_product_access(id))
+  );
 create policy products_admin on public.products
   for all using ((select public.is_admin())) with check ((select public.is_admin()));
 

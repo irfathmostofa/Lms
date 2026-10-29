@@ -20,6 +20,11 @@ function writeCart(ids: string[]) {
   window.dispatchEvent(new Event(EVENT));
 }
 
+export function clearCart() {
+  if (typeof window === 'undefined') return;
+  writeCart([]);
+}
+
 export function useCart() {
   const [ids, setIds] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
@@ -57,7 +62,7 @@ export function useCart() {
   }, []);
 
   const clear = useCallback(() => {
-    writeCart([]);
+    clearCart();
     setIds([]);
   }, []);
 

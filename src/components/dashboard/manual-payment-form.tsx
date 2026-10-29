@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Button, Field, Input } from '@/components/ui';
 import { submitManualPaymentAction } from '@/actions/student';
@@ -18,13 +19,19 @@ export function ManualPaymentForm({
   orderId,
   methods,
   suggestedAmount,
+  onSuccess,
 }: {
   enrollmentId?: string;
   orderId?: string;
   methods: { code: string; label: string }[];
   suggestedAmount?: number;
+  onSuccess?: () => void;
 }) {
   const [state, formAction] = useFormState(submitManualPaymentAction, null);
+
+  useEffect(() => {
+    if (state?.success) onSuccess?.();
+  }, [state?.success, onSuccess]);
 
   return (
     <form action={formAction} className="space-y-3">
