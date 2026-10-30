@@ -153,6 +153,14 @@ body {
   .rich-text code {
     @apply rounded bg-slate-100 px-1 py-0.5 text-xs text-slate-700;
   }
+
+  .rich-text-udemy {
+    @apply text-[15px] leading-7 text-slate-800;
+  }
+
+  .course-accordion summary::-webkit-details-marker {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

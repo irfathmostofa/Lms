@@ -75,7 +75,7 @@ export function CourseEnrollPanel({
         <Button
           type="button"
           size="lg"
-          className="w-full"
+          className="w-full rounded-none bg-[#a435f0] font-bold hover:bg-[#8710d8]"
           onClick={() => {
             setError(null);
             setShowLogin(true);
@@ -103,7 +103,7 @@ export function CourseEnrollPanel({
   if (currentRole !== 'student') {
     return (
       <div className="space-y-3">
-        <ButtonLink href={ROLE_HOME[currentRole] ?? '/dashboard'} size="lg" className="w-full">
+        <ButtonLink href={ROLE_HOME[currentRole] ?? '/dashboard'} size="lg" className="w-full rounded-none font-bold">
           {t('enroll.openDashboard')}
         </ButtonLink>
         <p className="text-center text-xs text-slate-500">
@@ -122,7 +122,7 @@ export function CourseEnrollPanel({
         <ButtonLink
           href={`/dashboard/my-learning/${courseId}`}
           size="lg"
-          className="w-full"
+          className="w-full rounded-none bg-[#a435f0] font-bold hover:bg-[#8710d8]"
         >
           {t('enroll.goLearning')}
         </ButtonLink>
@@ -137,7 +137,7 @@ export function CourseEnrollPanel({
     return (
       <div className="space-y-3">
         <Badge tone="amber">{t('enroll.paymentPending')}</Badge>
-        <ButtonLink href="/dashboard/my-fees" size="lg" className="w-full">
+        <ButtonLink href="/dashboard/my-fees" size="lg" className="w-full rounded-none bg-[#a435f0] font-bold hover:bg-[#8710d8]">
           {t('enroll.completePayment')}
         </ButtonLink>
         <p className="text-center text-xs text-slate-500">
@@ -160,7 +160,7 @@ export function CourseEnrollPanel({
       <Button
         type="button"
         size="lg"
-        className="w-full"
+        className="w-full rounded-none bg-[#a435f0] font-bold hover:bg-[#8710d8]"
         onClick={() => void enroll()}
         disabled={busy}
       >

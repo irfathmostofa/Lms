@@ -565,6 +565,8 @@ export interface PublishedCourseDetail {
     total_lessons: number;
     is_featured: boolean;
     published_at: string | null;
+    updated_at?: string | null;
+    created_at?: string | null;
   };
   sections: { id: string; title: string; summary: string | null }[];
   outline: {
@@ -620,6 +622,18 @@ export const getPublishedCourseDetail = unstable_cache(
   ['catalog:course-detail'],
   { revalidate: 300, tags: [CACHE_TAGS.catalog] },
 );
+
+export function pickRelatedCourses<T extends { id: string; category_id: string | null; is_featured: boolean }>(
+  courses: T[],
+  courseId: string,
+  categoryId: string | null,
+  limit = 4,
+): T[] {
+  const others = courses.filter((item) => item.id !== courseId);
+  const sameCategory = categoryId ? others.filter((item) => item.category_id === categoryId) : [];
+  const rest = others.filter((item) => item.category_id !== categoryId);
+  return [...sameCategory, ...rest].slice(0, limit);
+}
 
 export const getCatalogCourses = unstable_cache(
   async function getCatalogCourses() {
